@@ -1,0 +1,7 @@
+1	"Visual"
+2	"Somatosensory"
+3	"Dorsal attention"
+4	"Ventral attention"
+5	"Limbic"
+6	"Frontoparietal"
+7	"Default mode"

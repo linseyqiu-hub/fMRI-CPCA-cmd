@@ -1,0 +1,7 @@
+Title filename
+"Harvard-Oxford Cortical" harvard_oxford_cortical
+"Harvard-Oxford Subcortical" harvard_oxford_subcortical
+"Talairach" talairach
+"Brodmann" brodmann
+"Cerebellum" Cerebellum
+"Yeo-Buckner-Choi" yeo_buckner_choi

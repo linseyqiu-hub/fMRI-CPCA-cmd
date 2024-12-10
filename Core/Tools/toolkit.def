@@ -1,0 +1,28 @@
+[Tools]
+title      : CPCA Toolkit
+categories : 2
+category   : Memory Calculations
+category   : HRF Tool
+
+[Memory Calculations]
+num_tools  : 1
+
+[Memory Calculations : Tool 1]
+label      :  Show array memory usage
+action     :  array_memory_usage
+parameters :  
+  
+
+
+[HRF Tool]
+num_tools  : 1
+
+[HRF Tool : Tool 1]
+label      :  Create HRF shapes
+action     :  create_hrf_shapes
+parameters :  
+  
+
+
+
+

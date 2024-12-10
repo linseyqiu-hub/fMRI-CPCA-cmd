@@ -1,0 +1,717 @@
+% Edit history
+% +--------------------------------------------------------
+% | revision | date   | Notes
+% +----------+--------+------------------------------------
+% |          |        |     2009 
+% +----------+--------+------------------------------------
+% |  1.1.0   | Jun 09 | Initial Proof of concept code for memory management
+% |  1.2.0   | Jul 09 | Initial code for full GA processing
+% |  1.3.0   | Jul 09 | Code optimization
+% |  1.3.1   | Jul/Aug| isolation of main processing functions
+% |  1.3.2   | Aug 09 | Basic GUI design and implementation
+% |  1.3.3   | Aug 09 | data structure enhancements
+% |  1.3.4   | Aug 12 | logged in or su root user process
+% |  1.3.5   | Aug 12 | Processing data from normalized data in different directory
+% |          |        |  Allows differing models to be applied to individual normalized sets
+% |  1.3.6   | Aug 13 | H model application parsed out and initial tests
+% |  1.3.7   | Aug 13 | Z0 updates on Normalization process repaired.
+% |  1.3.8   | Aug 17 | process SPM2/5 masks
+% |  1.3.9   | Aug 19 | reprocess for GZ GAZ and G but not A
+% |  1.3.10  | Aug 19 | implemented header structure model numbering (1.0) and update utility
+% |  1.3.11  | Aug 20 | header structure model 1.1 - fields for H processing 
+% |  1.3.12  | Aug 24 | Various bug fixes, and required data model changes
+% |  2.1.0   | Aug 24 | Processing model changed to applying G to normalized subjects, no segmentation
+% |                   | which causes memory issues as subject count increases.  
+% |                   | limiting factor should now be size of G, after ~1000+ subjects
+% |                   | Major changed to 2 to reflect recoding from original (1.0)
+% |  2.1.1   | Aug 27 | H processing for revised G/A, image plots enacted by selection
+% |  2.1.2   | Aug 27 | H processing for G and not A - interface cleaning
+% |  2.1.3   | Sep 02 | added Z_Data to Zheader for old Z file selection ( data model: 1.2 )
+% |          | Sep 03 | Zheader creation from Z data, and process modification to utilize
+% |          |        |   different named matrix variable
+% |  2.1.4   | Sep 03 | quick PD process for small sets ( 20-30 subs or so )
+% |  2.2.0   | Sep 11 | encoding of Z*Z' operations, process isolation and GUI updates ( data model: 1.3 )
+% |  2.2.1   | Sep 12 | code cleanup, gross logic of controls repaired
+% |  2.2.2   | Sep 14 | code to allow dynamic text content of GUI controls
+% |  2.2.3   | Sep 15 | revised files list creation, documentation started
+% |  2.2.5   | Sep 18 | initial PC operations update
+% |  2.2.6   | Sep 25 | Removed dependency on installed SPM5
+% |  2.2.7   | Sep 28 | corrected accumulation of total sum squares error - linear regress
+% |  2.3.0   | Sep 30 | G image creation, improved windows directory handling
+% |  2.3.1   | Oct 02 | raw data reading - repaired offset issue on nifti with hdr/data combined
+% |  2.3.2   | Oct 09 | implemented Quadratic Regression [Liang Wang 09-10-02]
+% |  2.3.3   | Oct 14 | G matrice creation not implemented properly - all subjects linearly appended - fixed.
+% |          |        |   auto load and display of created G matrix
+% |  2.3.4   | Oct 19 | UR plot specifications settings dialog implemented [ data model 1.5 ]
+% |  2.3.5   | Oct 22 | Component Naming, plot repairs, save Z0 after tsum calc on loaded pre proc Z
+% |  2.3.6   | Oct 23 | revamped G creation to accomodate PC file structure readings
+% |  2.3.7   | Oct 23 | quick fix to plot using conditions rather than components for index
+% |  2.3.8   | Nov 02 | repaired annoying plotting flags operations
+% |  2.4.0   | Nov 03 | UR plotting on proper variable, revised per get_timecourses
+% |          |        | extreme pos/neg calculation on extraction (G only )
+% |  2.4.1   | Nov 04 | G Creation improvment, user sortable, deselect all, input file \n\r operation
+% |  2.4.2   | Nov 10 | Z partitioning, Normalization, etc...
+% |  2.4.4   | Nov 13 | Repaired windows wildcards, imagery, and directory operations
+% |  2.4.5   | Nov 16 | Windows Z file operations repaired
+% |  2.4.6   | Nov 19 | many minor details reapired - progress popup class designed and implemente
+% |  2.4.7   | Nov 20 | G creation timing vector units issues corrected (default scans)
+% |  2.4.8   | Nov 20 | image writing repaired, multiple aesthetic changes
+% |  2.4.9   | Nov 23 | initial implementation of extracted component rotation.  Only orthomax enable in this release.
+% |  2.5.1   | Nov 24 | Varimax rotation implemented - included memory limit warning on small (< 2G) memory capacity
+% |          |        | increased Minor Edit revision ( due to full rotation implementation )
+% |  2.5.2   | Nov 25 | cosmetic changes - location displays, location existance, current location, unload option
+% |          |        | cpca calulation result matrice memory size display, utility update_Z0 added
+% |  2.5.3   | Nov 25 | reinstated spm5 image writing.  Repaired mask limits errors on mask changes.
+% |  2.5.4   | Nov 26 | Plotting Alterations - new dialog for plotting computed data
+% |          |        |   plot Options contained in new dialog, Beat check implemented, data flipping implemented
+% |          |        |   plotting of UR Estimated HDR, all or individual component plotting
+% |  2.6.0   | Nov 26 | Plotting Alterations - rotations in main screen, many logiocal repairs
+% |  2.6.1   | Dec 01 | Extraction Rotations, plotting options, Beta checking (C)
+% |  2.6.2   | Dec 01 | Beta checks in Positive/Negative loadings
+% |  2.6.3   | Dec 04 | G Matrix creation using selection of SPM mat file (alpha code)
+% |          |        |   timing onset variable definitions format with spaced ' = ' repaired.
+% |  2.6.4   | Dec 09 | repaired G matrix creation from SPM.mat, 
+% |          |        |   re-image and extreme pos/neg re calcs on component flipping
+% |          |        |   beta check reporcessed to show pos/neg by component (actually sped process up)
+% |  2.6.5   | Dec 12 | Image format checking stabilized in final output
+% |          |        |   formerly, image format was decided on current SPM running version (defaulted to nifti)
+% |          |        |   now checking magic flag in header to determin format (nifti or analyse)
+% |          |        |   to do: image read/write flipping to eliminate SPM install dependancy
+% |  2.7.0   | Dec 18 | Alpha Release utilizing hrfmax rotations
+% |          |        |------------------------------------
+% |          |        |   2010 
+% |          |        |---------------------------------
+% |  2.7.1   | Jan 06 | finalized hrfmax - improved image reading and format checks
+% |  2.7.2   | Jan 08 | critical errors in component swapping and image writing repaired
+% |  2.8.1   | Jan 12 | statistics output in dialog with plotting, flipping and beta checking
+% |  2.8.2   | Jan 13 | added component variance to display, avoided prior extraction errors on loading calculations
+% |  2.8.3   | Jan 18 | plot selected components, user selected HRF shapes for hrfmax processing
+% |  2.8.4   | Jan 19 | Linear and Quadratic regression applied to standalone Z mat processing
+% |  2.8.5   | Jan 22 | orthogonal and oblique rotation styles for hrfmax algorithm
+% |  2.8.6   | Jan 25 | Beta checks from top 1/5/10% of loadings
+% |  2.8.7   | Jan 26 | G normalizaion by subject, Beta checks repaired
+% |  2.8.8   | Jan 28 | hrfmax repairs with powers and iteration defaults
+% |  3.0.0   | Feb 13 | revision of subject normalization, processing and application
+% |  3.0.1   | Feb 15 | repair of partitioning errors when older set selected
+% |  3.0.2   | Feb 17 | repair of partitioning settings on new sets and display issuesp
+% |  3.0.3   | Feb 17 | even more partition corrections and Gheader confirmation
+% |  3.1.0   | Feb 18 | Rotations dialog implemented and tested
+% |  3.2.0   | Feb 19 | initial implementation of reduced memory svd process
+% |                   | cleanup and organization of code
+% |  3.2.1   | Feb 22 | improved statistics display and component plot preview
+% |  3.2.2   | Feb 24 | fixed error of not applying F./snr prior to variance calculations
+% |  3.2.3   | Feb 24 | sped up variance checks and fixed accumulation errors
+% |  3.2.4   | Feb 25 | flip components refreshing, pop up handling and messaging improved
+% |  3.3.0   | Mar 01 | enhanced memory and time efficiency in G application
+% |  3.3.1   | Mar 02 | B process not using multi runs
+% |  3.3.2   | Mar 04 | scrolling of correlation coefficients in statistics window
+% |                   | Separation of G application and extraction
+% |                   | in depth resetting of G/GZ header information
+% |                   | component output filenames corected
+% |                   | minimal application logging
+% |  3.3.3   | Mar 08 | Mac operations
+% |  3.3.4   | Mar 09 | indeterminate progress display, user logs and mac control updates
+% |  3.3.5   | Mar 11 | lots of minor revisions, memory, drive space etc...
+% |  3.3.6   | Mar 18 | removed SPM interference, initial H implementation, 
+% |                   | TR applied to X labels, G parsing repaired
+% |  3.3.7   | Mar 19 | H control states, 
+% |  3.3.8   | Mar 24 | validation of numeric input, mask verification and error log
+% |  3.4.0   | Apr 01 | Improved rotation options, fixed drive spec errors on NFS and non /dev drives
+% |  3.4.1   | Apr 09 | many minor changes, normalization process on a per subject basis, std n-1
+% |                   | preserve C for later use
+% |  3.4.2   | Apr 13 | repaired imaging not recieving negative voxel data
+% |  3.4.3   | Apr 16 | phase 1 of rotations enhancements - promax orthogonal output on request
+% |                   | rotations logic improved some more, clearer defined parameters
+% |                   | duplicate imagery output for *nix systems (mricron hang avoidance)
+% |  3.5.0   | Apr 22 | multiple rotations in single pass
+% |                   | component extraction by vector allowing multi pass extaction/rotation
+% |  3.5.1   | Apr 23 | mac systems with no HOME env setting log errors repaired
+% |                   | for now, log folder created at root
+% |  3.5.2   | Apr 26 | logging system bypass when permission errors
+% |                   | or environment access/setting problems
+% |  3.5.3   | Apr 27 | parameter issue on rotation repaired
+% |                   | statistics display updated - no rotated/unrotated variances required
+% |                   | initial indication of component potentially requiring flipping
+% |  3.5.4   | Apr 30 | mismatched image loading on swapped components repaired
+% |                   | rotation improvemnts, beta C calculations adjusted
+% |                   | component checks repaired, total sums corruption repaired
+% |  3.5.5   | May 10 | Rotations applied to UR (experimental)
+% |                   | head movement regression ( data model 2.2 )
+% |                   | revised stddev function for larger voxel width ( 188k etc ... )
+% |                   | revised normalization and G application for larger width data
+% |                   | scree plotting ( eigenvalues )
+% |                   | subject UR text output - each condition zero'd
+% |                   | resumption of interrupted G application 
+% |  3.5.6   | May 13 | improved text output, display changes
+% |  3.5.7   | May 17 | Normalization resumption, changes in text decimal places ( data model 2.3 )
+% |                   | repaired selection of Gheader as G
+% |  4.0.0   | May 26 | Subject Grouping  ( data model 2.4 )
+% |                   | overhaul of file system processing for list creation
+% |                   | revision of timing offset reading and relation to subject data
+% |                   | enforced subject ID for model relation and Group processing
+% |  4.0.1   | May 31 | multiple Z0  ( data model 2.5 )
+% |                   | descriptions added to Z0 and G information for user clarity
+% |  4.1.0   | Jun 02 | significant error in GG/gg processing in multiple run sets
+% |  4.1.1   | Jun 07 | improvements in G viewing, image plotting, 
+% |                   | some items missed on G revisions repaired
+% |                   | pc file system run list repaired
+% |  4.1.2   | Jun 07 | implemented but disabled UR/VR alts
+% |                   | subject group plotting only
+% |  4.1.3   | Jun 09 | calculation and preservation of cluster coordinates
+% |                   | mask creation, spm determination for image output
+% |                   | alternative structure matrices for oblique rotations
+% |                   | Z and G editor updates
+% |  4.2.0   | Jun 15 | PC file systems, list creation and parsing
+% |                   | G timing onsets parsing. allow underscore in var names
+% |                   | ( var format separated by tilde ( subjectID~RunID~var_name )
+% |                   | All .mat loads and saves taking into account path with spaces
+% |                   | full operation on source/destination folders with spaces in names
+% |  4.2.1   | Jun 25 | G timining onsets and creation completely revised
+% |                   | addition of Runs and Conditions dialog in Z and G creation
+% |                   | production of timing onsets template file and importing of onsets
+% |                   | MNI coordinates calculation update and display alteration
+% |                   | literally hundreds of minor issues corrected
+% |  4.2.2   | Jul 07 | G view colors adjusted, extractions forced on rotations
+% |                   | process date tracked, y axis on gruop plots balanced
+% |                   | process indicators added, process text on popups improved
+% |                   | output into sub fiolders for file access ease
+% |                   | statistics using pwd and subdirectory folders to allow for older data sets
+% |                   | Group Editor allows group deletion
+% |                   | stats plot by subject option added
+% |                   | edited file lists with inserted CRLF pairs handled
+% |  4.2.3   | Jul 30 | various bugs and omissions corrected
+% |  4.2.4   | RC-1   | selection and usage of preexisting T matrix on hrfmax
+% |                   | allow any number of components up to size of T matrix
+% |                   | show eigenvalues from current file.
+% |                   | MNI text file appending repaired - files created anew
+% |  4.2.4   | Aug 06 | MNI Multiple component write error fixed
+% |                   | sync of ver: 4.2.4-RC-1 and 5.2.0-RC-1 
+% |                   | comparisons and confirmation 
+% |  4.2.5   | Aug 12 | peak coordinates sort error repaired
+% |  4.2.6   | Aug 12 | peak coordinates on rotated solutions corrected
+% |  4.2.7   | Aug 17 | PC graphing issue resolved - MNI Coordinates sorted
+% |  4.2.8   | Aug 20 | scan list verification processing
+% |                   | [2.9] - added scan_information path of text file list
+% |                   | repaired standalone Z condition names errors
+% |  4.3.0   | Aug ?? | nifti single file processing
+% |  5.0.0   | RC-1   | begin fork for H implementation
+% |            RC-2   | synch of 4.2.2 - initial H from G implementation
+% |            RC-3   | image volume reads, LR flipping by user selection
+% |                   | all images read converted to NIFTI format
+% |                   | all component images written in NIFTI format
+% |            RC-4   | peak coordinates calculations recoded from SPM C functions
+% |                   | complete independance from SPM installation achieved
+% |  5.1.0   | RC-1   | nifti image read/write corrections per manoach data
+% |            RC-2   | data type issue from spm, transform repairs
+% |            RC-3   | H process from selected G output
+% |                   | corrected image errors on 32 bit machines for float data types
+% |  5.2.0   | RC-1   | selection and usage of preexisting T matrix on hrfmax
+% |                   | allow any number of components up to size of T matrix
+% |                   | show eigenvalues from current file.
+% |                   | MNI text file appending repaired - files created anew
+% |            RC-2   | MNI Multiple component write error fixed
+% |                   | sync of ver: 4.2.4-RC-1 and 5.2.0-RC-1 
+% |                   | comparisons and confirmation 
+% |  5.2.0   | Aug 06 | released
+% |  5.2.1   | Aug 12 | Repaired MNI coordinate sort error
+% |                   | not satisfied with roteted MNI
+% |                   | toggle between normal and alternate UR
+% |                   | plot individual components, with subject and grouping
+% |  5.2.2   | Aug 13 | Repaired MNI coordinates on rotated solutions
+% |  5.2.3   | Aug 17 | PC graphing issue resolved - MNI Coordinates sorted
+% |  5.2.4   | Aug 25 | scan list verification processing
+% |                   | [2.9] - added scan_information path of text file list
+% |                   | repaired standalone Z condition names errors
+% |  5.3.0   | Aug 27 | nifti single file processing
+% |  5.3.1   | Aug 31 | Group indicator in UR output
+% |                   | plotting overhaul 
+% |  5.3.2   | Sep 02 | plotting of imbalanced groups repaired
+% |                   | initial implementation of version incompatibilty checks [2.91]
+% |  5.3.3   | Sep 13 | multiple logic and process adjustments in
+% |                   | Z file List creation
+% |  5.3.4   | Sep 13 | improved compatibilty with older versions of CPCA
+% |                   | automatic adjustment of Version 4/5 vol structures.
+% |  5.3.5   | Sep 16 | repaired process errors created by application revisions
+% |                   | H processing revamped
+% |                   | imaging from version 4 data sets repaired
+% |  5.3.6   | Sep ?? | secondary Z0 repairing
+% |  5.4.0   | Oct 07 | revisions of GG GC and C processing
+% |                   | imaging problems tracing
+% |                   | G normalized by subject and std overall
+% |                   | Subject normalization process repaireD (mc then std)
+% |  5.4.1   | Oct ?? | memory issues addressing
+% |  5.4.2   | Oct 08 | MNI Coordinate sorting display issue resolved
+% |                   | single value timing onset being ignored - fixed
+% |                   | allow single condition timing onset to exceed subject depth - truncate
+% |                   | throw error message if more than 1 onset exceeds depth for condition
+% |                   | incremental improvement in overall memory handling
+% |  5.4.3   | Oct 14 | normalization and trend removal in standalone Z not implemented correctly
+% |                   | resolved hidden issue with subject data of various size
+% |                   | screen output logging
+% |                   | usage of pre segmented G repaired
+% |                   | excessive tabs in excel output timings repaired
+% |  5.4.4   | Oct 22 | hrf shapes creation, dialog locking removal on stats screen
+% |                   | betas averaging after flipping repaired
+% |                   | plotting average of all conditions
+% |                   | creating of masks for cluster selections as Z0
+% |                   | cluster subprocess full cpca application
+% |  5.4.5   | Oct 29 | ROI Masking, fixed cluster listings and masking
+% |  6.0.0   | Nov 10 | Major alterations to file system output process and organization
+% |                   | Subject Specific alternate VR inclusion
+% |  6.0.1   | Nov 12 | cluster mean/median output per subject
+% |  6.0.2   | Nov 15 | minor adjustment error on older data repaired
+% |  6.0.3   | Nov 17 | multiple minor backlogged issues addressed
+% |  6.0.4   | Nov 18 | cluster information fixed on negative values
+% |                   | Subject Specific alternate VR mean/median output reinstated
+% |                   | cluster peaks listing enhanced
+% |  6.0.5   | Nov 19 | cluster mean/median on component flip implemented
+% |                   | Rotation Settings altered to make item update more intuitive
+% |  6.0.6   | Nov 24 | Head movement data from rp_*.txt files in individual scan folders
+% |                   | Stats display reformatted
+% |  6.0.7   | Dec 06 | Revised plotting to allow custom group selection
+% |                   | only available when more than 2 groups
+% |                   | H processing implemented on filesystem basis
+% |                   | H rotations implemented
+% |                   | statistics display implemtening proper filesystem and re-imaging
+% |                   | stats showing 5% of loadiongs in VR for component
+% |                   | minor adjustment to stats display for clarity
+% |                   | adjustments to output content to include pos/neg values on MNI
+% |                   | rotation setting using flag to activate/deactivae update/add buttons
+% |  6.0.8   | Dec 09 | oops - UR not ouputting per component
+% |                   | revised cluster info output
+% |                   | added cluster mask output
+% |  6.0.9   | Dec 14 | reimaging of flipped components only
+% |  6.1.0   | Dec 16 | Z0 renamed to ZInfo
+% |                   | normalized Z data files stroed in director ./Z
+% |                   | G.mat renamed to Gheader.mat
+% |                   | Processed data files now stored in {model}/#_components
+% |                   | HRFMAX operation allowed without shapes if T matrix defined
+% +----------+--------+------------------------------------
+% |          |        |     2011
+% +----------+--------+------------------------------------
+% |  6.1.1   | Jan 05 | indexing of cluster peaks resulting in list errors and duplications
+% |  6.1.2   | Jan 12 | display of T matrix and original component orientation
+% |                   | scan corruption detection with abort during mask creation
+% |                   | Windows does not like the time stamp in log file names - replaced colon with underscore
+% |  6.1.3   | Feb 04 | cleaned up dead files - non release version for reuse
+% |                   | repaired processing of single run data contained in sub directory
+% |  6.1.4   | Feb 16 | G creation allowing multiple timing onsets to extend beyond scan depth
+% |                   | ignoring timing onsets starting beyond scan depth 
+% |                   | warn researcher that onsets may be in seconds
+% |                   | added information in output files ( subjects,runs,bins,conditions etc...)
+% |                   | no oblique rotations on hrfmax
+% |                   | preserving unambiguous masks and shapes files (mask_used, shapes_used )
+% |                   | output adjustment on component flipping repaired
+% |                   | remove scientific notation on correlation coefficient display in stas window
+% |  7.0.0   | Mar 02 | G creation allowing multiple timing onsets to extend beyond scan depth
+% |                   | main GUI window is enlarged, and less cluttered looking
+% |                   | Locations of the scan data and masks are expanded to show more information
+% |                   | buttons in the top right and left have been re-arranged
+% |                   | the cache indicator button enabled on Linux systems
+% |                   | Utilities/Tools added - diloag contains Analysi Memory, debug stats and mean beta images
+% |                   | produce images based on the mean beatas for all subjects/all conditions, 
+% |                   |   all subject/each condition, and each subject/each condition
+% |                   | statistics window has been slightly enlarged
+% |                   | the Shapes Creation has been adjusted to be more friendly
+% |                   | The 'Append' field in the Rotation Settings window now works again
+% |  7.0.1   | Mar 07 | toggle plotting of predictor weights and loadings
+% |  7.0.2   | Mar 08 | beta averages calculation on single subject repaired
+% |                   | display of 0 percentages in output repaired
+% |                   | windows memory executable changed for proper DWORDLONG values
+% |                   | windows utility path location revamped in toto
+% |  7.0.3   | Mar 18 | repaired filesystem errors on 10+ component extractions
+% |                   | cosmetic changes for clarity
+% |  7.1.0   |        | initial Multiple Frequency Z segments  [2.93]
+% |  7.1.1   |        | stable tests performed on Jen Whitman's data
+% |  7.2.0   |        | H reimplementation ( HZ HE HGZ and GMH )
+% |  7.2.1   | May 03 | imbalanced model conditions repaired
+% |          |        | normalization of multiple run - variable clearing repaired
+% |          |        | G creation and application of unbalanced models repaired
+% |                   | single value entry for HRF duration used as default for all condition onsets
+% |                   | run directory format inclusion changes missed have been repaired
+% |  7.2.2   | May 05 | all spm_ functions renamed and code checked to use spm_5_ to avoid inadvertent spm path issues
+% |  7.2.3   |  RC.1  | mask verification showing NaN and Inf in scans
+% |          |  RC.2  | GMH variable preparation optional on G creation
+% |          |  RC.3  | normalization vert/horiz depending on model applied
+% |          |  RC.4  | subject specific data on extraction
+% |  7.2.4   | May 31 | subject specific stats/images on non rotated solutions
+% |                   | recreation of subject specific without re-extractiohn
+% |  7.2.5   | May 31 | G matrix rank checking and reporting
+% |  7.2.6   |        | cpca version added to files.txt output
+% |                   | rcond value added to G_rank output
+% |                   | subject G components - added corrcoef( [FG GC] )
+% |                   | scan list parse - subject ID's - allow duplicate
+% |                   | subject ss loadings in rotations
+% |  7.2.6   | Jun 01 | Alternate UR stats in rotations not displayed
+% |     .62  |        | file listing ID being used as subject folder names - corrected
+% |  7.2.63  | Jun 03 | Alternate UR calculations removed
+% |  8.0.0   | Jun ?? | File list creation issue regarding user file specifications
+% |          |        | could result in misaligned scan data read order
+% |          |        | wildcard presentation not limited, matching image counts presented
+% |          |        | and manual scan selection presentation encoded
+% |          |        | Windows file systyem wildcarding and presentation synchronization and adaptation 
+% |          |        | Complete revision of main math engine regarding GC segmentation per run
+% |          | RC.1   | prior GC was full subject size, resulting in memory issues on wide data with multiple runs
+% |          |        | GMH processing on frequency ranged data sets
+% |          | RC.2   | Rotations repaired 
+% |          |        | modification of file creation list and parsing
+% |          |        | multiple frequencies and runs tested okay
+% |          | RC.3   | GMH Rotations implemented
+% |          |        | G extraction from frequency data repaired
+% |          |        | percentages of variance regressed displayed individually
+% |          |        | for linear/quadratic - allowance for head move and user defined
+% |     .10  |        | Windows file systyem wildcarding and presentation synchronization and adaptation 
+% |     .11  |        | other endian image reading process adjusted to compensate for offset
+% |     .12  |        | G rank button always available in Full G Parameters
+% |     .13  |        | Cache size button update from external script implemented
+% |     .14  |        | Cache clearing automation implemented
+% |  8.0.15  | Jun 23 | GMH and H Rotations and imagery implemented
+% |  8.0.16  | Jun 24 | GMH UR display repaired
+% |  8.0.17  | Jun 24 | Mask verification include column variance check and new mask creation
+% |     .18  |        | GMH G variables from crashed earlier process not preparing
+% |          |        |  pre preparation removed from H selection and placed in GUI
+% |     .19  |        | GMH Component flipping repaired
+% |     .20  |        | GMH Alternate UR calculations - cov/corrcoef ( [VR H] )
+% |     .21  |        | Subject specific VR code update for GMH and Frequency ranges
+% |     .22  | Jul 04 | GE output repaired
+% |     .23  | Jul 05 | HRF Model creation adjusted to updated run parameter variables
+% |     .24  |        | Synchronized from stabilized public release.
+% |  8.0.25  | Jul 06 | H to Z/E rotation repaired
+% |  8.0.26  | Jul 18 | Variance accounted for in GC by subject now output
+% |     .27  |        | Variance accounted for in GC by subject now output in rotations
+% |  8.0.28  | Jul 21 | as well as non subject specific extraction/rotation output
+% |  8.0.29  | Jul 21 | PC filesystem processing on head movement parameters files checks
+% |  8.0.30  | Jul 21 | corrected processing of stand alone Z.mat files
+% |     .31  |        | Various font and text changes
+% |  8.0.32  | Jul 25 | Subject Specific for rotations - general and specific
+% |     .33  |        | user rotation directory copies causing issues
+% |          |        |  - forced to valid method names only
+% |  8.0.34  | Jul 28 | mask validation bug in setting scans with zeros repaired
+% |  8.0.35  | Jul 29 | Z repair and pc/linux path conversions repaired
+% |  8.0.36  | Aug 03 | revision of hrf shapes creation dialog
+% |     .37  | Aug 03 | HRF shapes inconsistencies repaired
+% |     .38  |     03 | HRF model inconsistencies repaired
+% |  8.0.39  | Aug 10 | Windows 7 Ultimate changes cause all DIR functions to fail
+% |          |        |  - all file creation steps and sundry using internal matlab dir() function
+% |     .40  |        | initial HB process implemented
+% |     .41  |        | sudo cache operation stabilized with proper file ownership restortation
+% |          |        |  - button only activates if matlab run as root or in sudo mode
+
+% |     .42  |        | initial implementation of results output for E, GC and other variables
+% |     .43  |        | inadvertent G application error fixed
+% |  8.0.44  | Aug 18 | head movement data file read errors corrected
+% |     .45  |        | Adjusted H GUI layout and operation
+% |     .46  |        | Error in gg load during G application repaired
+% |     .47  |        | Data model update to 3.02
+% |  8.1.0   | Aug 24 | Code variables U/UR  F/FR in error
+% |          |        | U/UR now P/PR   F/FR now U/UR
+% |          |        | data sets from version 7.0.0 and up converted if accepted
+% |          |        | lower limit of allowable cpca revision files implemented
+% |  8.1.01  | Aug    | Subject VR's in error on multiple runs
+% |  8.1.02  | Aug 26 | minor GUI changes, GMH and H processing tests and repairs
+% |     .03  |        | Enhancement of progress displays
+% |     .04  |        | corrected E creation ( Z not being normalized prior to Z - GC )
+% |  8.1.05  | Sep 09 | E no longer normalized when H model applied
+% |     .06  |        | scan images from G-E  HZ-E and HE-E, as well as GC and BH
+% |     .07  |        | sudo automation improved to allow owner changes without auto toggle
+% |  8.2.00  |        | GMH Re-encoding
+% |     .01  |        | data model revision [ 3.1.0 ]
+% |          |        |   major revision to scan_information;  H_model reduced  GHM_Model added [3.1.0]
+% |     .02  |        | GUI changes to separate H and GMH processing  [3.1.0]
+% |     .03  |        | normalization vert/horiz depending on model applied removed [3.2.0]
+% |     .04  |        | GMH application memory adjustment for GMH variable creation
+% |     .05  |        | globals collection of evntual user preference save/load   [3.3.0]
+% |     .06  |        | Z linear and other regression data into text files
+% |     .07  |        | No display of pos/neg information on screen per subject
+% |     .08  |        | handling of inadvertent ZInfo files in output directories
+% |     .09  |        | Qh preparation processing indicator repair
+% |     .10  |        | GMH process options for disk and time savings  [ 3.3.1]
+% |     .11  |        | GMH: M/B always required - locked if not existing to create initial eigenvalues
+% |     .12  |        | G select button not clearing to prevent incedental errors
+% |     .13  |        | allow subject(s) to contain non encoded condition
+% |  8.3.00  |        | original GMH method reimplemented  [ 3.3.2]
+% |      01  |        |   adjustment to allow regression/extraction/rotate on GMH BH CG independently
+% |      02  |        |   synched to public 8.0.33
+% |      03  |        |   GMH operations confirmed  GMH and GC regression, extraction and rotation
+% |      04  |        | synched to public 8.1.00
+% |      05  |        |   allow subjects to contain differing number of runs
+% |      06  |        | head movement file counts did not take run count differences into account
+% |      07  |        | hrf shape creation enhancement
+% |     .08  |        | changes in G creation - eye set to number of bins, non normalized
+% |     .09  |        | corrections to non encoded conditions of varying states
+% |     .10  |        | Read Z always normalized - G non normalization option
+% |     .11  |        | eye of G creation no longer set to bins - 1 and 0 only 
+% |     .12  |        | stddev now split between pop_dev, and samp_dev - all stsdev calling samp_dev
+% |     .13  |        | subject selection from list in Group Creations
+% |     .14  |        | Group names in stats legend
+% |     .15  |        | HRF Shape Creation bug on spanned events repaired
+% |     .16  |        | HRF Shape Creation plot labelling and standardized line style/color
+% |     .17  |        | Rotations now using PR, UR and VR - clearing flipped non rotated issues
+% |     .18  |        | GMH::GMH & GC regression/extraction adjusted
+% |     .19  |        | GMH::GMH & GC rotations disabled for now
+% |     .20  | Dec 09 | GMH processing options variable detection repaired
+
+% +----------+--------+------------------------------------
+% |          |        |     2012
+% +----------+--------+------------------------------------
+% |     .28  |        | subject specifc options for GMH:GC variables [3.32]
+% |     .29  |        | initial implementation of fisher transformed images
+% |  8.3.30  | Jan 18 | initial implementation of procrustes rotation - needs adjusting for displays
+% |     .31  | Jan    | repaired overlooked DirChar usage to OS specific globals.dir_char
+% |     .32  | Jan    | cluster mask output
+% |  8.3.33  | Jan 30 | optimized normalization and regression of covariates
+% |  8.4.00  | Feb    | revised component variance algorithm
+% |     .01  |        | Revision of HRF model creation on multiple runs
+% |     .02  | Feb    | various display issues adjusted
+% |     .03  |        | thresholding and stats set to adjustable levels - default: 1, 5, 10, 20  30 %
+% |     .04  |        | GMH Processing incorporating adjusted thresholds ( GMH:GMH, GMH:GC only )
+% |     .05  |        | cluster information for precentage of loadings
+% |  8.5.00  |        | revised normalization regression code and data storage
+% |     .01  | Feb 29 | scan verification now includes dimension check
+% |     .02  |        | subject specific calculations repaired
+% |     .03  |        | multiple frequency adjustments to adjusted regression stats
+% |     .04  |        | zoom on VR loadings plots in stats window
+% |     .05  |        | processing of nii single file masks
+% |     .06  |        | image writing where nii single files used as mask
+% |     .07  |        | mask verification where nii single files used as mask
+% |     .08  | Mar 07 | mask selection dialog shows *.img and *.nii for selection
+% |     .09  |        | nii single file overlooked in beta images
+% |     .10  | Mar 08 | adjust header error resulted in lost mask information
+% |     .11  |        | Repaired regression percentage calculation
+% |     .12  |        | added modifiable button to popup_display, with callback setting
+% |     .13  |        | modified HRFMAX to use progress button as 'save state and exit'
+% |     .14  | Mar 15 | modified HRFMAX to load preserved state and resume process
+% |  8.6.00  |        | implememtation of java modules for secondary calculations and updates
+% |     .01  |        | dialog adjustment for hrfmax processing and state save/resumption
+% |     .02  | Apr 02 | hrfmax adjustments to interface with adjusted dialog
+% |    7.00  |        | incorporation of alternate PR calculation
+% |     .01  |        | repaired calculations of normalization regression percentages
+% |     .02  |        | improved performance of component flipping
+% |     .03  |        | plot output of component PR, alternate PR and clusters
+% |     .04  | Apr 23 | flipped component output files, masks and plots adjusted
+% |    7.10  |        | improved file system path definitions and layout
+% |    7.11  | May 22 | Alternate PR by user setting, no calc if GC not created
+% |    7.20  | Jun 27 | revised component variance structure names, added variance and ssq table to output
+% |    7.21  | Jun 28 | repaired HRFMAX T selection, variance stats access
+% |    7.30  | Jul 10 | Complete revision of Subject Specific processing and component flipping
+% |  8.8.00  |        | implememtation of variant H processing for applying single H to all subjects
+% |     .01  |        | or an independant H for each subject.  Source from existing analysis or selection.
+% |     .02  |        | G SS values missing in rotation mat files
+% |     .03  | Aug 21 | SPM8 image handling inserted for scode transformation images
+% |     .04  |        | SVD ByRef emulation implemented - allows SVD on larger arrays w/o memory issues
+% |     .05  | Sep 11 | BH processing revised
+% |     .06  |        | Cluster plotting by user selection ( individual and multi )
+% |     .07  | Sep 13 | BH processing of HRF model repaired
+% |     .08  |        | GMH Processing updated to specs from meg study
+% |     .09  |        | GMH subject extraction/Rotation implemented
+% |     .10  |        | GMH utilizing per subject H
+% |     .11  | Oct 01 | ZInfo file size creep issue resolved
+% |     .12  | Oct 05 | progress indicator updates repaired for HRFMAX rotation/ alte PR calculation
+% |     .13  |        | BH Process variance and scaling issue resolved.
+% |     .14  | Oct 10 | cluster mean text per subject and average for user selected clusters
+% |     .15  | Oct 22 | BH Process complete revision per Kwanghee Jung
+% |     .16  |        | H Processing per subject disabled for now
+% |     .17  | Oct 23 | Shapes display in Rotation Settings X labelling repaired
+% |     .18  |        | progress display upgrade
+% |     .19  |        | GMH::BH Process for multiple runs repaired
+% |     .20  |        | progress display updates on BH extraction/imaging
+% |     .21  | Nov 07 | progress display updates on GMH::*extraction/imaging
+% |          |        |     todo: GMH Subject Specific
+% | 1.0.2.00 |        | Stable release versioning, H processing updates
+% |      .01 |        | Talairach MNI coordinates calculated @ Lancaster xform - fallback Brett
+% |      .02 |        | H creation module implemented ( replace with later improved Java app )
+% |      .03 |        | H rotation disabled when any sum(H') == 0  ( no variance )
+% |      .04 |        | minor issue on control name variance from public version repaired
+% | 1.1.0.00 |        | standardized variable naming for predictor weights
+% |      .01 |        | P/PR = PR of G  Ph/PRh  PR of h
+% |      .02 |        | all variables saved in output - empty indicates not used
+% |      .03 |        | stats display and flipping checks completed
+% |      .04 |        | G application/extraction w/o talariach coords calculated
+% |      .05 |        | GMH::GMH rotation using PR and using resulting T on PRh
+% |      .06 |        | GMH and BH process runnable with only G regression
+% |      .07 |        | Talairach coords loadable from other analysis - auto prompt on Create H
+% |      .08 |        | Quick fix to G component flip beta image recreation
+% |      .09 |        | use global java pop module, no copy
+% |      .10 |        | GMH::GC Subject components enabled
+% |      .11 |        | flag need to change java dynamic path depending on version
+% |      .12 |        | Addition of multiple H matrix 
+% |      .13 |        | improve speed of talairach calulations
+% |      .14 |        | initial test repairs on G and some cache issues resolved
+% |      .15 |        | first beta release
+% +----------+--------+------------------------------------
+% |          |        |     2013
+% +----------+--------+------------------------------------
+% |      .16 | Jan 07 | Discovered bug in multi run G timing imports repaired
+% |      .17 |        | H creation java applet updated to show index, allow mask creation
+% |      .18 |        | cluster view dialog adapted to H creation with mask creation
+% |          |        | and talariach expansion
+% |      .19 |        | pos neg extremes revised for reduced encoded voxels in H
+% |      .20 | Jan 11 | component flipping for H adjusted for reduced encoded voxels
+% |      .21 | Jan 14 | talairach reload dialog created
+% |      .22 | Jan 17 | graphing of HRF for GMH process repaired
+% |      .23 | Jan 24 | fixed subject PR output error on large run differences and odd encodings
+% |      .24 | Feb 05 | repaired PR weigh display when H is normalized ( uses VR value for region )
+% |      .25 |        | pre-release for Katie - allows testing of single subject, condition and bins
+% |          |        | 
+% |      .26 |        | testing of alterations for Katie DTI analysis
+% |      .26 |        | Load of precreated H matrix without G existance
+% |      .27 |        | Process Z = BH + E without prior G regression 
+% |      .28 |        | Adjustable mask creation threshold value
+% |      .29 |        | Shapes selection on HRFmax redefined to match number of bins in width
+% |      .30 |        | Changed image output file name definition to make rotation method as lead
+% |      .31 |        | mask creation produces output showing voxel and removed count per subject/run
+% |      .32 |        | display progress dialog during sum_subject_scans 
+% |      .33 |        | mask creation in separate folder, with full scan log, summay and errors
+% |          |        | mask voxels saved in full image size as boolean ( smaller footprint )
+% |      .34 |        | Multiple Component selection for flipping 
+% |      .35 | Mar 19 | log and backup flipped data
+% |      .36 |        | revised GnotH processing
+% |      .37 |        | G application error when first run less than other scan lengths
+% |      .38 |        | Left/Right hemisphere mask creation
+% |      .39 |        | stats display multiple condition selection
+% |      .40 |        | configuration file in user home, or Program Files\CNosLab
+% |      .41 |        | user covariate creation from conditions in G model
+% |      .42 |        | multiple extraction/rotation performs full process on each component count
+% |      .43 |        | older variance structure access in Stats display
+% | 1.1.1.00 |        | Adaptation to access and modify HPC scripted data sets
+% |      .01 |        | revised SSQ data collection  Z
+% |      .02 |        | revised SSQ data collection  GC
+% |      .03 |        | revised beta data output
+% |      .04 |        | revisited and modified subject specific processing
+% |      .05 |        | beta output for subject specific repaired
+% |      .06 |        | single soures for data collection of C, GC, Z etc..
+% |      .07 |        | tests and repairs to operate on older data format sets
+% |      .08 |        | stats, beta check and flipping confirmed
+% |      .09 |        | successful testing of Subject Specific for extract and rotate
+% |      .10 |        | successful testing of multiple run data set - all G operations
+% |      .11 |        | successful testing of multiple frequency data set - all G operations
+% |      .12 |        | successful testing of non encoded conditions including multi frequency
+% |      .13 |        | Z = BH + E process implemented and tested
+% |      .14 |        | begin implementation of Z = GMH + BH + GC + E process
+% |      .15 |        | pre-release from GMH optimizatitions
+% |      .16 |        | single subject processing encoded
+% |      .17 |        | component flipping repaired
+% |      .18 |        | component flipping for GMH/GnotH encoded
+% |      .19 |        | beta check enabled for GMH:GnotH
+% |      .20 |        | C beta calculations C retrieval improved for large data sets
+% |      .21 |        | process resumption staging modifications     [ 3.40 ]
+% |      .22 |        | repaired logic error on GZ::CC re-creation flagging
+% |      .23 |        | required perform_svd on meg study in case of singular arrays
+% |          |        | mask creation process revisions
+% |      .24 |        | report subjects with no data during sum
+% |      .25 |        | report and bypass subject reducing mask to 0
+% |      .26 |        | report and bypass subject with no data
+% |      .27 |        | mask adjusted only on fully processed subject run
+% |      .28 |        | mask creation flagging voxel reduction by value
+% | 1.2.0.00 |        | mask creation revisions to allow for single
+% |          |        | creation with multiple calculation for large data sets
+% |      .01 |        | mask statistics include number of voxels removed by region
+% |      .02 |        | mask creation output revisions
+% | 1.2.1.00 |        | mask creation revisions using whole brain mask from talairach atlas
+% |      .01 |        | mask creation default to global mean thresholding
+% |      .02 |        | adjusted output display
+% |      .03 |        | trial onset allowed from individual run directory file ( trial_timings.txt )
+% |      .04 |        | mask creation adjusted to remove ventricles, optic tract and CSF areas
+% |      .05 |        | talairach template masks loading talairach indexing and labelling
+% |      .06 |        | talairach template masks assigning brett xforms when required
+% |      .07 |        | repaired empty rotation selection file entry on initial open
+% |      .08 |        | minor adjustments for PC operations
+% |      .09 |        | Z Sum Diagonal report only displaying active runs
+% |      .10 |        | G Creation Ranking file now shows sum(sum(gg)) value or errors
+% |      .11 |        | remove call to built-in feature( 'clearjava', 1 ) - not active in ML2013a
+% |      .12 |        | javarmpath only called if .jar on path
+% |      .13 |        | mask creation witn > 10 runs repaired multiple find issue
+% |      .14 |        | Display of missing source timings optional ( default off )
+% |      .15 |        | Flagged Mac systems returning extended df information
+% |      .16 |  Nov   | hrf procrustes rotations implemented
+% |      .17 |        | repaired creation of HRF mask
+% |      .18 |        | repaired loading of taliarach coordinates from mask creation
+% |      .19 |        | Procrustes rotations finalised and percentage track encoded
+% |      .20 |        | MATLAB 2013 Java errors during component flipping resolved
+% |          |        |  - related to progress bar updates when pong setting used
+% |      .21 |        | repaired empty rotations listing when rotations cleared
+% |      .22 |        | hrf-procrustes no longer available in oblique mode
+% |      .23 |        | Talairach based mask only using Brett Transform
+% |      .24 |        | Talairach based mask User selected image for mask creation
+% |      .25 |        | Procrustes Rotation added into GMH processing
+% |      .26 |        | Residuals ( E ) saved into full analysis format as Z
+% |      .27 |        | Residuals ( E ) saved as independent scans
+% +----------+--------+------------------------------------
+% |          |        |     2014
+% +----------+--------+------------------------------------
+% | 1.3.2.01 | Jan 09 | Development version - ROI as G ( TBC )
+% | 1.2.1.30 | Feb 03 | implementation of GA and GAA
+% | 1.2.1.31 |        | removal of Talaraich coordinate system, inclusion
+% |          |        | of MNI coordinate calulations for mask creation
+% | 1.2.1.32 | Feb 14 | adjustment of GA/GnotA for multi run studies
+% | 1.2.1.33 |        | adjustment of GA/GnotA for multi run studies
+% | 1.2.2.01 | Mar 06 | complete removal of global variable
+% |          |        | All processes through G/GA/GnotA revised and tested
+% |          |        | User Preferences activation and usage fully enabled
+% |          |        | Complete Code layout redesign, and dead code removed
+% |          |        | single source for constants and structures
+% |          |        | initial steps for removal of legacy define_structures taken
+% |          | Mar 10 | revision of Utility Toolkit as dynamic module 
+% |          |        | (kludgy, but works ), needs expansion
+% |          |        | Preferences button text changed, swapped with toolkit
+% |          |        | Inclusion of release date in revision number
+% |          | Mar 13 | MAc drive spec determination repair
+% | 1.2.2.00 |        | initial redeployment layout finshed
+% |      .01 |        | full G and GA/GnotA processing implemented
+% |      .02 |        | full BH and GMH processing implemented
+% |      .03 |        | all references to legacy global variable removed
+% |      .04 |        | columns of Z used as ROI G implementation
+% |          |        | verified single and multi session runs on G/GA/BH/GMH
+% |      .05 |        | GMH::BH Multi Frequency Processing confirmed
+% |      .06 |        | GMH Multi Frequency / Multi Session Processing confirmed
+% |      .07 | Apr 16 | Rules based iteration for progress implementation started
+% |          |        |    subject normalization and G regression only
+% |      .08 | Apr 17 | completed testing and adjustments for non encoded conditions
+% |          |        |    non frequency only
+% |      .09 | Apr 22 | completed all testing of non encoded and multi run/multi freq permutations
+% |      .10 | Apr 22 | Residuals preserved with G/GA/GAA model revision in output directory name
+% |      .11 | May    | Harvard Oxford Atlas registration of Mask images
+% |      .12 |        | Preferences allows for selection of Gray Matter only analysis results
+% |      .13 |        |   implemented in regression, extraction, rotation and subjects for G only
+% |      .14 | Jun 04 | initiated implementation of analysis output specifiers ( output_definitions() )
+% |      .15 | Jun 06 | revised for any combination of whole brain, Grey and White analysis output
+% |          |        |    G - non frequency only, no cluster mean/median on Grey/White Subject
+% |      .16 |        | adjusted procustes rotations per shapes and target VR's
+% |      .17 |        | adjusted linux environment data retrieval when running csh
+% +----------+--------+------------------------------------
+% |          |        |     2016
+% +----------+--------+------------------------------------
+% |      .18 | Apr 27 | Revised cluster output to 1.2.2.01 version
+% |          |        | Fixed inaccurate hard drive space report
+% |          |        | added clear_model function in main gui file
+% |      .19 | Jun 11 | deleted undeclared variable fname in scaling_values
+% |          |        | Improved compatibility with Matlab 2014b Graphics Update
+% |          |        | Added directory functions package
+% |          |        | Fixed relative path issues with rotation and plot display
+% +----------+--------+------------------------------------
+% |          |        |     2023
+% +----------+--------+------------------------------------
+% |      .22 | Nov 26 | fixed wrong hard drive space from Mac and Linux
+% |          |        | fixed wrong memory report from Mac
+% |          | Nov 28 | fixed memory report from PC,  memchk.exe program is dropped
+% |          | Nov 29 | removed duplicated function chk_isMulFreq_Callback
+% |          |        | Unrecognized function or variable 'btn_selectCondition_Callback', double clicks G Matrix Creation/Conditions
+% |          |        | commented out function lst_conditionNames_Callback from create_g.m
+% |          |        | Unrecognized function or variable 'btn_selectCondition_Callback', double clicks G Matrix Creation/Conditions
+% |          |        | commented out function lst_subjects_Callback from create_g.m
+% |          |        | too many "CPCA Analysis in progress" windows!
+% |          |        | Unrecognized property 'gh' for class 'matlab.ui.Figure' when select G matrix
+% +----------+--------+------------------------------------
+% |          |        |     2024
+% +----------+--------+------------------------------------
+% |      .23 | Apr 27 | Added MACA64 and ARM architectures into isBigendian.com
+% |          | Apr 30 | Added command Create_File_List(subject_dir,filewildcard,output_dir,filename,isMulFreq)
+% |          | May 10 | Added command Create_ZData_Matrix
+% |          | May 25 | Added command process_subject_normalization_cmd
+% |          | Jun 23 | Added command Create_GMatrix and RegressG
+% |          | Jun 30 | undefined function isRunEncoded at line 180 of calculate_alternate_PR.m, line 156 cmd version
+% |          | Jun 30 | undefined function subject_VR at line 66 and 90 of write_subject_cluster_data.m
+% |          | Jul 01 | added Extract_Rotate_Components.m, good for extraction
+% |          | Jul 07 | added Extract_Rotate_Components.m, good for rotation
+% |          | Jul 11 | added component flip command
+% |          | Jul 14 | added z path repair command

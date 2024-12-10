@@ -1,0 +1,113 @@
+% --- rules based processing for control activations
+% ---
+% --- FORMAT:
+% ---
+% ---  [GUI: Panel]
+% ---       main section delimiter containing rules defined for controls
+% ---       within a specified GUI and/or separate panel
+% ---
+% ---  id    : [ rule1 rule2 ... rulen ]
+% ---      individual rules for each defined control
+% ---      parse_rule() will replace each textual rule with the predefined
+% ---      calculation of it's result, and a product of all rules will be returned.
+% ---      eg:     strrep( A, 'true',     num2str(1) );
+% ---              A = prod( str2num(char(A )));
+% ---
+% ---  Return:
+% ---      structure containing:
+% ---        nvars   - the number of defined rules
+% ---        vars    - a structure containing each rules result, where id is the structure fieldname
+% ---
+
+
+% --- Main GUI control activation rules
+
+% --- System Panel controls
+% --- --------------------------------------
+
+[Main GUI: System Panel]
+
+  viewLog    : [ hasLog notProcessing]
+  options    : [ true ]
+  cache      : [ isLinux  ]
+  autocache  : [ isLinux isSudo ]
+  fixFS      : [ isLinux isSudo ]
+  utils      : [ true notProcessing ]
+
+  createList : [ true notProcessing ]
+  cd 	       :	[ true notProcessing ]
+  unload     :	[ isLoaded notProcessing ]
+  run 	    :	[ isLoaded hasG notProcessing ]
+
+
+% --- Subject Panel controls
+% --- --------------------------------------
+
+[Main GUI: Subject Panel]
+
+ select   :	[ true ]
+ info     :	[ isLoaded ]
+ verify   :	[ isLoaded ]
+
+
+% --- Mask Panel controls
+% --- --------------------------------------
+
+[Main GUI: Mask Panel]
+
+ select  : [ isLoaded ]
+ roi     : [ isLoaded ]
+ create  : [ isLoaded ]
+ verify  : [ isLoaded hasMask  ]
+ register: [ isLoaded hasMask notRegistered ]
+
+
+% --- Model Panel controls
+% --- --------------------------------------
+
+[Main GUI: Model Panel]
+
+ % --- G buttons
+ clr     : [ isLoaded Gdefined ]
+ gcreate : [ isLoaded hasMask ]
+ gselect : [ isLoaded hasMask ]
+ edit    : [ isLoaded Gdefined ]
+ scree   : [ isLoaded Gdefined hasGEigs ]
+ stats   : [ isLoaded Gdefined hasGEigs hasGVR ]
+
+ % --- A buttons
+ aselect : [ isLoaded Gdefined isFIR							notFreq  allEncoded ]
+ aadd    : [ isLoaded Gdefined isFIR hasA                       notFreq  allEncoded ]
+
+ % --- H buttons
+ hselect : [ isLoaded Gdefined hasGEigs hasGVR                            allEncoded ] % --- Used to have allEncoded
+ hadd    : [ isLoaded Gdefined hasGEigs hasGVR hasH ]
+ hcreate : [ isLoaded ]
+
+ % --- G_ROI buttons
+ r_state : [ true ]
+ groi	 : [  isLoaded Gdefined hasGEigs hasGVR                 notFreq  allEncoded ]
+ rselect : [  isLoaded Gdefined hasGEigs hasGVR                 notFreq  allEncoded ]
+ radd    : [  isLoaded Gdefined hasGEigs hasGVR                 notFreq  allEncoded ]
+ rscree  : [  isLoaded Gdefined hasGEigs hasGVR hasROIEigs      notFreq  allEncoded ]
+ rimages : [  isLoaded Gdefined hasGEigs hasGVR hasGCROI        notFreq  allEncoded ]
+
+% --- Scree/Stats buttons
+ ZH      : [ isLoaded hasH hasZH ]
+ EH      : [ isLoaded hasH hasEH ]
+ GMH     : [ isLoaded hasH hasGMH ]
+ HnotG   : [ isLoaded hasH hasGMHBH ]
+ GnotH   : [ isLoaded hasH hasGMHGC ]
+
+
+% --- Processing Panel controls
+% --- --------------------------------------
+
+[Main GUI: Process Panel]
+
+  Z     : [ isLoaded hasMask ]
+  GA    : [ isLoaded hasMask Gdefined ]
+  BH    : [ isLoaded hasMask hasH 					notFreq ] % --- used to have Gdefined
+  EH    : [ isLoaded hasMask Gdefined hasH hasResidual 					notFreq ] % --- used to have hasResidual
+  GMH   : [ isLoaded hasMask Gdefined hasH            				allEncoded ]
+  ResZ  : [ isLoaded hasMask Gdefined hasGEigs]

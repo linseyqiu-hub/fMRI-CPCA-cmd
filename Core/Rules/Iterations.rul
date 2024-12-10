@@ -1,0 +1,52 @@
+% --- rules for process iteration calculations
+% ---
+% --- FORMAT:
+% ---
+% ---  [SECTION]
+% ---       main section delimiter containing rules defined for process iteration calulation 
+% ---
+% ---  id    : [ rule1 rule2 ... rulen ]
+% ---      individual rules for each defined iteration process
+% ---      iteration_rule() will replace each textual rule with the predefined
+% ---      calculation of it's result, and a sum of all rules will be returned.
+% ---      iteration calulations may be expressions, and external parameters may 
+% ---      be passed to iteration_rule using the optional 'options' parameter
+% ---
+% ---      eg:   iters = iteration_rule( 'Iterations', 'G Regression', {'primary'} );
+% ---      eg:   iters = iteration_rule( 'Iterations', 'Subject Normalization', {'primary'}, ...
+% ---                                     struct( 'covar', perform_covariant_regression > 0 ) );
+% ---
+% ---  Return:
+% ---      structure containing:
+% ---        nvars   - the number of defined rules
+% ---        vars    - a structure containing each calculation result, where id is the structure fieldname 
+% ---
+
+[Subject Normalization]
+
+% --- total number of scans.  any covariant regression adds scans * 2
+% --- primary options:   struct( 'covar', perform_covariant_regression > 0 ) 
+% --- secondary options: struct( 'Subj', ##, 'covar', perform_covariant_regression > 0) )
+
+primary    :  [ total_scans * freqs   total_scans * freqs * covar  total_scans * freqs * covar ]
+secondary  :  [ subject_scans   subject_scans * covar   subject_scans * covar ]
+
+
+[G Regression]
+
+primary      : [ active_runs * freqs * 2     prime_runs ]
+secondary_GZ : [ subject_runs * freqs ]
+secondary_GC : [ subject_runs * freqs ]
+secondary_CC : [ secondary_count ]
+
+
+[Residual Creation]
+
+primary   : [ active_runs * freqs ]
+secondary : [ subject_runs * freqs ]
+
+
+[Residual Images]
+
+primary   : [ total_scans * freqs ]
+secondary : [ subject_scans * freqs ]
