@@ -1,4 +1,5 @@
-function conditions = get_condition_names(filename)
+function conditions = extractConditions(filename)
+    % Read the entire file into a cell array, line by line
     fid = fopen(filename, 'r');
     if fid == -1
         error('Could not open file');
@@ -10,16 +11,19 @@ function conditions = get_condition_names(filename)
     % Read each line
     tline = fgetl(fid);
     while ischar(tline)
-        % Check if line starts with "sub-" (assuming all relevant lines follow this pattern)
-        if startsWith(tline, 'sub-')
-            % Extract the condition name
-            % Find the position of underscore and equals sign
-            underscorePos = find(tline == '_', 1);
-            equalsPos = find(tline == '=', 1);
+        % Find the position of the last underscore and equals sign
+        underscorePositions = find(tline == '_');
+        equalsPos = find(tline == '=', 1);
+        
+        if ~isempty(underscorePositions) && ~isempty(equalsPos)
+            % Get the last underscore position
+            lastUnderscorePos = underscorePositions(end);
             
-            if ~isempty(underscorePos) && ~isempty(equalsPos)
-                % Extract the text between underscore and equals sign
-                conditionName = tline(underscorePos+1:equalsPos-1);
+            % Extract the text between the last underscore and equals sign
+            conditionName = tline(lastUnderscorePos+1:equalsPos-1);
+            
+            % Only add if we got a non-empty condition name
+            if ~isempty(conditionName)
                 conditions{end+1} = conditionName;
             end
         end
@@ -28,6 +32,8 @@ function conditions = get_condition_names(filename)
     
     % Close the file
     fclose(fid);
-
-    conditions = unique(conditions)
+    
+    % Remove any duplicate conditions
+    conditions = unique(conditions);
+end
 
