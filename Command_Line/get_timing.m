@@ -1,4 +1,4 @@
-function timing = extractTimings(filename)
+function timing = get_timing(filename)
     % Read the entire file into a cell array, line by line
     fid = fopen(filename, 'r');
     if fid == -1
