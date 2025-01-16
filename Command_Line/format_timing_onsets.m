@@ -1,5 +1,7 @@
 % Script to format timing data from input to output format
-function formatTimingData()
+function formatTimingData(base_dir)
+    cd(base_dir)
+
     % Read the input file
     fid = fopen('input.txt', 'r');
     content = fscanf(fid, '%c');
