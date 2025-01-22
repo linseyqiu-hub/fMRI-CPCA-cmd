@@ -50,7 +50,7 @@ if ( fid )
                     var_id = strrep( var_id, '__', '_' );
                     var_id = strrep( var_id, ' ', '_' );
 
-                    timings = timing{cond};
+                    timings = timing{SubjectNo}{RunNo}{cond};
                     fprintf( fid, '%s = [%s];\n', char(var_id), timings );  
 
                 end  % --- each condition ---
