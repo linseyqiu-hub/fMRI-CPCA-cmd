@@ -64,10 +64,7 @@ GH.bins = 8; %time Bins
 GH.TR = 3; %timing Rate
 GH.inScans = 1; %Timing in Seconds or Scans: 1 for Scans, 0 for seconds?
 GH.normalize_me = 1; %Normalize G matrix: 1 for yes, 0 for no
-timing = {'55.269 79.07 89.12 118.57 123.27 138.01 163.45 179.19 189.25', ...
-          '5.03 10.38 20.77 69.68 74.38 108.52 132.99 158.43 199.29', ...
-          '15.74 25.79 40.54 143.37 148.73 168.81 173.83 183.89 194.269', ...
-          '30.49 35.84 45.24 59.96 64.66 84.1 94.48 113.21 128.29'};% --- timimg onsets
+timing = parse_timing(4, 2, 4);% --- timimg onsets, parse_timing(num_subjects, num_runs, num_conds)
 % create timing osets template, the output file name is timing_onsets_template.txt
 create_onsets_template_cmd(baseDIR,GH,timing);
 %% creat G matrix
