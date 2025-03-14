@@ -1,9 +1,9 @@
 % command-line demo scripts
 warning('off','all')
 %% add fmri-cpca folder and all subfolders into matlab path
-addpath(genpath('/Users/wsu/cpca_1.2.2.23/'));
+addpath(genpath('Z:\People\Rain\cpca_1.2.2.23'));
 % work folder
-baseDIR = '/Users/wsu/example_data_Multiple_Groups_Subjects_Runs';
+baseDIR = 'Z:\People\Rain\cpca_1.2.2.23\TestData\semantic_association_data';
 %% create scan list
 % make sure the baseDIR does not have other folders except the folders with
 % scans. this command will remove processed stuffs completely. You can
@@ -41,7 +41,7 @@ Create_File_List(baseDIR, 'swa*nii');
 % --- example usage: Create_ZData_Matrix(baseDIR) 
 % ---                Create_ZData_Matrix(baseDIR, 'fileName', 'files.txt', 'maskName', 'mask.img','maskMethod',2);
 %%%%%%%%%%%%% LINE CHANGED %%%%%%%%%%%%%%
- Create_ZData_Matrix(baseDIR, 'fileName', 'files.txt', 'maskName', 'mask.img');
+ Create_ZData_Matrix(baseDIR, 'fileName', 'files.txt', 'maskName', 'mask.img', "maskMethod", 1);
 
 %% Normalize Z matrix
 %
