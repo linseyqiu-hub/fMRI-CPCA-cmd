@@ -98,8 +98,8 @@ end
 
 flags = eye( GH.bins, GH.bins );	% --- our inset is a (n,n) diagonal
 
-x = exist( 'Gsegs', 'dir' );
-if ( x ~= 7 )  % --- the directory does not exist
+x = isfolder( 'Gsegs' );
+if ( x ~= 1 )  % --- the directory does not exist
     mkdir Gsegs;
 end
 

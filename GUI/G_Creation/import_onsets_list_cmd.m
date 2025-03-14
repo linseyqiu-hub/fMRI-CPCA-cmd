@@ -50,21 +50,26 @@ function [txt, onsetsfile, Zheader] = import_onsets_list_cmd(base_dir, filename,
               
                 subj_id = subject_id_cmd( SubjectNo, scan_information);
                 run_id = determine_runID_cmd( SubjectNo, RunNo, scan_information );
-                index = find(~cellfun(@isempty,strfind(TextAsCells,append(subj_id, '_', run_id, '_', Zheader.conditions.Names{condno}))));
-                if (isempty(index))
-                    
+                
+                % Try with both patterns: subj_id_run_id_condition and subj_id_condition
+                pattern1 = append(subj_id, '_', run_id, '_', Zheader.conditions.Names{condno});
+                pattern2 = append(subj_id, '_', Zheader.conditions.Names{condno});
+                
+                % Check for either pattern in the file
+                index1 = find(~cellfun(@isempty, strfind(TextAsCells, pattern1)));
+                index2 = find(~cellfun(@isempty, strfind(TextAsCells, pattern2)));
+                
+                % Combine the results - if either pattern is found
+                if (isempty(index1) && isempty(index2))
                     Zheader.conditions.nonEncoded = Zheader.conditions.nonEncoded + 1;
                 else
-                    vec = [vec, condno];%[1,2,3,4]
+                    vec = [vec, condno]; %[1,2,3,4]
                     z.condition(condno) = 1;
                     Zheader.conditions.allEncoded = Zheader.conditions.allEncoded + 1;
-                    %if any(Zheader.conditions.subject(SubjectNo).Run(RunNo).conditions == condno )   
                     required_onsets = required_onsets + 1;  
-                    %s.Runs( RunNo ) = s.Runs( RunNo ) + 1;
-                    %end                    
                 end
           end
-            Zheader.conditions.subject(SubjectNo).Run(RunNo).conditions = vec;%[1,2,3,4]
+            Zheader.conditions.subject(SubjectNo).Run(RunNo).conditions = vec; %[1,2,3,4]
             Zheader.conditions.encoded(SubjectNo,1).condition = z.condition;
         end
       end
