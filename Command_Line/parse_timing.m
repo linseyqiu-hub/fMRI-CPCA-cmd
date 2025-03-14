@@ -1,4 +1,5 @@
-function timing = parse_timing(num_subjects, num_runs, num_conds)
+function timing = parse_timing(base_dir, num_subjects, num_runs, num_conds)
+    cd(base_dir);
     % Initialize the cell array with the specified dimensions
     timing = cell(num_subjects, num_runs, num_conds);
     
