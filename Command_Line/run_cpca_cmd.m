@@ -1,59 +1,56 @@
-%% fMRI-CPCA Analysis Script
-% This script performs fMRI-CPCA analysis using parameters from a config file called "configs.m"
+%% run_cpca_cmd.m
+% fMRI-CPCA Analysis Script
+% This script performs fMRI-CPCA analysis using parameters from configs.m
+% Simply run this script directly in MATLAB terminal
+% 
+% Author: [Your Name]
+% Date: April 17, 2025
 
-function run_cpca_analysis(config_file)
-    % Check if config file is provided
-    if nargin < 1
-        [file, path] = uigetfile({'*.m'}, 'Select CPCA configuration file');
-        if isequal(file, 0)
-            error('No configuration file selected. Analysis aborted.');
-        end
-        config_file = fullfile(path, file);
-    end
-    
-    % Suppress warnings
-    warning('off', 'all');
-    
-    % Load configuration
-    try
-        run(config_file);
-        fprintf('Configuration loaded from: %s\n', config_file);
-    catch ME
-        error('Error loading configuration file: %s\n%s', config_file, ME.message);
-    end
-    
-    % Add CPCA folders to path (modify as needed)
-    fprintf('Adding CPCA libraries to MATLAB path...\n');
-    % Get script directory
-    script_dir = fileparts(mfilename('fullpath'));
-    % Add CPCA library assuming it's in a subfolder of script directory
-    cpca_path = fullfile(script_dir, 'cpca_lib');
-    if ~exist(cpca_path, 'dir')
-        % If not found, prompt user to select CPCA library path
-        cpca_path = uigetdir(script_dir, 'Select the fMRI-CPCA library folder');
-        if isequal(cpca_path, 0)
-            error('CPCA library folder not selected. Analysis aborted.');
-        end
-    end
-    addpath(genpath(cpca_path));
-    
-    % Validate configuration parameters
-    validate_config(config);
-    
-    % Display analysis parameters
-    display_parameters(config);
-    
-    % Confirm if the user wants to continue
-    if ~confirm_analysis()
-        fprintf('Analysis cancelled by user.\n');
-        return;
-    end
-    
-    % Execute CPCA analysis
-    execute_cpca_analysis(config);
-    
-    fprintf('CPCA analysis completed successfully!\n');
+% Suppress warnings
+warning('off', 'all');
+
+% Load configuration from configs.m
+config_file = 'configs.m';
+try
+    run(config_file);
+    fprintf('Configuration loaded from: %s\n', config_file);
+catch ME
+    error('Error loading configuration file: %s\n%s', config_file, ME.message);
 end
+
+% Add CPCA folders to path (modify as needed)
+fprintf('Adding CPCA libraries to MATLAB path...\n');
+% Get script directory
+script_dir = fileparts(mfilename('fullpath'));
+% Add CPCA library assuming it's in a subfolder of script directory
+cpca_path = fullfile(script_dir, 'cpca_lib');
+if ~exist(cpca_path, 'dir')
+    % If not found, prompt user to select CPCA library path
+    cpca_path = uigetdir(script_dir, 'Select the fMRI-CPCA library folder');
+    if isequal(cpca_path, 0)
+        error('CPCA library folder not selected. Analysis aborted.');
+    end
+end
+addpath(genpath(cpca_path));
+
+% Validate configuration parameters
+validate_config(config);
+
+% Display analysis parameters
+display_parameters(config);
+
+% Confirm if the user wants to continue
+if ~confirm_analysis()
+    fprintf('Analysis cancelled by user.\n');
+    return;
+end
+
+% Execute CPCA analysis
+execute_cpca_analysis(config);
+
+fprintf('CPCA analysis completed successfully!\n');
+
+% --- Helper Functions ---
 
 function validate_config(config)
     % Validate essential parameters
@@ -93,7 +90,7 @@ function display_parameters(config)
 end
 
 function confirmed = confirm_analysis()
-    response = input('Continue with CPCA analysis? [y/n]: ', 's');
+    response = input('Continue with CPCA analysis? [Y/n]: ', 's');
     confirmed = isempty(response) || lower(response(1)) == 'y';
 end
 

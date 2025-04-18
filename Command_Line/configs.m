@@ -1,5 +1,8 @@
-% CPCA Analysis Configuration File
-% Edit parameters below to customize your analysis
+%% configs.m - CPCA Analysis Configuration File
+% This file defines all parameters for the CPCA analysis
+
+% Initialize empty config structure
+config = struct();
 
 % Base directory containing your data
 config.baseDIR = 'Z:\Path\To\Your\Data';
