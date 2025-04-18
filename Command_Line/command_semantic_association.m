@@ -70,6 +70,7 @@ GH.TR = 2; %timing Rate
 %%%%%%%%%%%%% LINE CHANGED %%%%%%%%%%%%%%
 GH.inScans = 1; %Timing in Seconds or Scans: 1 for Scans, 0 for seconds?
 GH.normalize_me = 1; %Normalize G matrix: 1 for yes, 0 for no
+%%%%%%%%%%%%% LINE CHANGED %%%%%%%%%%%%%%
 timing = parse_timing(baseDIR, 6, 1, 2);% --- timimg onsets, parse_timing(num_subjects, num_runs, num_conds)
 % create timing osets template, the output file name is timing_onsets_template.txt
 create_onsets_template_cmd(baseDIR,GH,timing);
@@ -78,7 +79,6 @@ create_onsets_template_cmd(baseDIR,GH,timing);
 % ---  input:
 % ---        GH: GH struction defined in the previous step
 % ---        filename: timing onsets file created from the previous step
-%%%%%%%%%%%%% LINE CHANGED %%%%%%%%%%%%%%
 Create_GMatrix(baseDIR,GH, 'timing_onsets_template.txt' )
 %% regress G matrix
 % function RegressG(base_dir, model)
