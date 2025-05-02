@@ -5,7 +5,7 @@ This repository contains a MATLAB script for performing Constrained Principal Co
 ## Requirements
 
 - MATLAB (tested with version R2019b or newer)
-- fMRI-CPCA library (typically included in `cpca_lib` subfolder)
+- fMRI-CPCA library (typically included in `Z:\People\[Your Name]` subfolder)
 
 ## Files
 
@@ -14,13 +14,11 @@ This repository contains a MATLAB script for performing Constrained Principal Co
 
 ## Quick Start
 
-1. Place both `run_cpca_cmd.m` and `configs.m` in your working directory
-2. Edit `configs.m` with your specific parameters (see Configuration section below)
-3. Run the script in MATLAB:
-   ```matlab
-   run('run_cpca_cmd.m')
-   ```
-4. Review the displayed parameters and confirm to begin analysis
+1. Clone the repository into your machine.
+2. Place your study data somewhere inside the folder. (IMPORTANT: Make sure to only have ONE folder/study and NO other folders containing pre-existing processed data. This is due to parts of the script recursively searching through your directories for files and having duplicate file/folder names will cause unexpected behaviours)
+3. Edit `configs.m` with your specific parameters (see Configuration section below)
+4. Run the following command in MATLAB terminal: `run_cpca_cmd`
+5. Review the displayed parameters and confirm to begin analysis
 
 ## Configuration
 
@@ -28,8 +26,9 @@ Edit `configs.m` to set parameters for your analysis. Below is an explanation of
 
 ### Basic Parameters
 
-- `config.baseDIR` - Directory containing your data
-- `config.filewildcard` - Pattern to select scan files (e.g., 'swa*nii' or 'fsn*img')
+- `config.cpcaDIR` - Directory of fMRI-CPCA library (typically `Z:\People\[Your Name]\cpca_1.2.2.23`)
+- `config.baseDIR` - Directory containing your data (typically `Z:\People\[Your Name]\cpca_1.2.2.23\TestData\[Your Data]`)
+- `config.filewildcard` - Pattern to select scan files (e.g., 'swa*nii', 'fsn*img')
 
 ### Mask Parameters
 
@@ -84,14 +83,14 @@ The script performs the following steps:
 ## Troubleshooting
 
 - **Error loading configuration**: Ensure `configs.m` is in the same directory as `run_cpca_cmd.m`
-- **CPCA library not found**: The script will prompt you to select the CPCA library folder
+- **CPCA library not found**: The script will display all parameters before running the analysis. Please look through them to see if there are any discrepancies.
 - **Missing parameters**: If required parameters are missing, the script will display an error message
 - **Base directory not found**: Ensure the path in `config.baseDIR` exists
 
 ## Example Configuration
 
 ```matlab
-% Example configuration for a semantic association task
+% Example configuration
 config = struct();
 config.baseDIR = 'Z:\Data\semantic_association_data';
 config.filewildcard = 'swa*nii';
@@ -113,10 +112,3 @@ config.num_conditions = 2;
 config.num_components = 3;
 config.rotation_method = 'varimax';
 ```
-
-## References
-
-For more information on CPCA methodology, please refer to:
-
-- Takane, Y., & Hunter, M. A. (2001). Constrained principal component analysis: A comprehensive theory. Applicable Algebra in Engineering, Communication and Computing, 12(5), 391-419.
-- Woodward, T. S., Feredoes, E., Metzak, P. D., Takane, Y., & Manoach, D. S. (2013). Epoch-specific functional networks involved in working memory. Neuroimage, 65, 529-539.

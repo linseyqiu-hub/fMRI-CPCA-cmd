@@ -4,6 +4,9 @@
 % Initialize empty config structure
 config = struct();
 
+% Base directory of fMRI-CPCA script
+config.cpcaDIR = 'Z:\Path\To\Your\CPCA' % Should be PATH/cpca_1.2.2.23
+
 % Base directory containing your data
 config.baseDIR = 'Z:\Path\To\Your\Data';
 

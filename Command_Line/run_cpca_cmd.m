@@ -18,21 +18,6 @@ catch ME
     error('Error loading configuration file: %s\n%s', config_file, ME.message);
 end
 
-% Add CPCA folders to path (modify as needed)
-fprintf('Adding CPCA libraries to MATLAB path...\n');
-% Get script directory
-script_dir = fileparts(mfilename('fullpath'));
-% Add CPCA library assuming it's in a subfolder of script directory
-cpca_path = fullfile(script_dir, 'cpca_lib');
-if ~exist(cpca_path, 'dir')
-    % If not found, prompt user to select CPCA library path
-    cpca_path = uigetdir(script_dir, 'Select the fMRI-CPCA library folder');
-    if isequal(cpca_path, 0)
-        error('CPCA library folder not selected. Analysis aborted.');
-    end
-end
-addpath(genpath(cpca_path));
-
 % Validate configuration parameters
 validate_config(config);
 
@@ -54,7 +39,7 @@ fprintf('CPCA analysis completed successfully!\n');
 
 function validate_config(config)
     % Validate essential parameters
-    required_fields = {'baseDIR', 'filewildcard', 'condition_names', 'bins', 'TR', 'inScans', 'normalize_G', ...
+    required_fields = {'cpcaDIR', 'baseDIR', 'filewildcard', 'condition_names', 'bins', 'TR', 'inScans', 'normalize_G', ...
                      'num_subjects', 'num_runs', 'num_conditions', 'num_components'};
     
     for i = 1:length(required_fields)
@@ -71,6 +56,7 @@ end
 
 function display_parameters(config)
     fprintf('\n==== CPCA Analysis Parameters ====\n');
+    fprintf('Base CPCA Directory: %s\n', config.cpcaDIR)
     fprintf('Base Directory: %s\n', config.baseDIR);
     fprintf('File Wildcard: %s\n', config.filewildcard);
     fprintf('Mask Name: %s\n', config.maskName);
@@ -96,6 +82,7 @@ end
 
 function execute_cpca_analysis(config)
     try
+        addpath(genpath(config.cpcaDIR));
         % Step 1: Create scan list
         fprintf('\n1. Creating scan list...\n');
         Create_File_List(config.baseDIR, config.filewildcard);
