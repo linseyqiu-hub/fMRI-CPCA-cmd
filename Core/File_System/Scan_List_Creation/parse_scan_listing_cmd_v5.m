@@ -210,8 +210,15 @@ disp( 'checking RP and timing files . . .' );
 
 for SubjectNo = 1:scan_information.NumSubjects
     for ii = 1:scan_information.NumRuns
-        check_rp_file( SubjectNo, ii );
-        check_trial_file( SubjectNo, ii );
+        if scan_information.isMulFreq && scan_information.frequencies > 0
+            for FreqNo = 1:scan_information.frequencies
+                check_rp_file( SubjectNo, ii, FreqNo );
+                check_trial_file( SubjectNo, ii, FreqNo );
+            end
+        else
+            check_rp_file( SubjectNo, ii, 1 );
+            check_trial_file( SubjectNo, ii, 1 );
+        end
     end
 end
 
@@ -220,18 +227,13 @@ end
 
 
 
-    function check_rp_file( SubjectNo, RunNo )
-
+    function check_rp_file( SubjectNo, RunNo, FrequencyNo )
         if iscellstr(scan_information.SubjDir(SubjectNo,RunNo))
-
-            %    filespec=strcat( scan_information.BaseDir,filesep, char(scan_information.SubjDir(SubjectNo,RunNo)),filesep);
             filespec = [ scan_information.BaseDir filesep char(scan_information.SubjDir(SubjectNo,RunNo)) filesep ];
-
             p = dir( [filespec 'rp_*.txt'] );
             if ~isempty(p)
                 f = load( [filespec p(1).name] );
-                [r, c] = get_subject_scan_count( SubjectNo, RunNo );
-
+                [r, c] = get_subject_scan_count_cmd( SubjectNo, RunNo, FrequencyNo, scan_information );
                 if ( size(f,1) == r )
                     scan_information.processing.subjects.rp_count = scan_information.processing.subjects.rp_count + 1;
                 end
@@ -239,14 +241,9 @@ end
         end
     end
 
-
-    function check_trial_file( SubjectNo, RunNo )
-
+    function check_trial_file( SubjectNo, RunNo, FrequencyNo )
         if iscellstr(scan_information.SubjDir(SubjectNo,RunNo))
-
-            %    filespec=strcat( scan_information.BaseDir,filesep, char(scan_information.SubjDir(SubjectNo,RunNo)),filesep);
             filespec = [ scan_information.BaseDir filesep char(scan_information.SubjDir(SubjectNo,RunNo)) filesep ];
-
             p = dir( [filespec 'trial_tim*.txt'] );
             if ( size(p,1) > 0 )
                 scan_information.processing.subjects.tt_count = scan_information.processing.subjects.tt_count + 1;
@@ -255,9 +252,7 @@ end
                     fprintf( '[missing] %s\n', filespec )
                 end
             end
-
         end
-
     end
 
 end
