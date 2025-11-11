@@ -6,11 +6,18 @@
 % Author: [Your Name]
 % Date: April 17, 2025
 
+%% Clean workspace, command line, and paths
+
+clear; clc; close all;
+restoredefaultpath;
+
+%%
 % Suppress warnings
 warning('off', 'all');
 
 % Load configuration from configs.m
 config_file = 'configs.m';
+
 try
     run(config_file);
     fprintf('Configuration loaded from: %s\n', config_file);

@@ -5,13 +5,13 @@
 config = struct();
 
 % Base directory of fMRI-CPCA script
-config.cpcaDIR = 'Z:\Path\To\Your\CPCA' % Should be PATH/cpca_1.2.2.23
+config.cpcaDIR = '/media/abhijit.chinchani/My Passport/Abhijit/fMRI_Analysis/fMRI_CPCA_cmd/fMRI_CPCA_CMD_Abhijit/code/fMRI-CPCA-cmd/'; % Should be PATH/cpca_1.2.2.23
 
 % Base directory containing your data
-config.baseDIR = 'Z:\Path\To\Your\Data';
+config.baseDIR = '/media/abhijit.chinchani/My Passport/Abhijit/fMRI_Analysis/fMRI_CPCA_cmd/fMRI_CPCA_CMD_Abhijit/data/example_data_1/example_data_Multiple_Groups_Subjects_Runs/';
 
 % File wildcard for scan selection (e.g., 'swa*nii' or 'fsn*img')
-config.filewildcard = 'swa*nii';
+config.filewildcard = 'fsn*img';
 
 % Mask parameters
 config.maskName = 'mask.img';  % Name of the mask file
@@ -27,16 +27,16 @@ config.meanCenter = 1;         % 1-On, 0-Off
 config.standardize = 1;        % 1-On, 0-Off
 
 % G matrix parameters
-config.condition_names = {'CONDITION1', 'CONDITION2'};  % List of condition names
+config.condition_names = {'2_letters', '4_letters', '6_letters', '8_letters'};  % List of condition names
 config.bins = 8;        % Number of time bins
-config.TR = 2;          % Timing rate
+config.TR = 3;          % Timing rate
 config.inScans = 1;     % 1 for Scans timing, 0 for seconds
 config.normalize_G = 1; % 1 to normalize G matrix, 0 to not normalize
 
 % Timing parameters
-config.num_subjects = 6;    % Number of subjects
-config.num_runs = 1;        % Number of runs per subject
-config.num_conditions = 2;  % Number of conditions
+config.num_subjects = 4;    % Number of subjects
+config.num_runs = 2;        % Number of runs per subject
+config.num_conditions = 4;  % Number of conditions
 
 % Component extraction parameters
 config.num_components = 2;  % Number of components to extract
