@@ -16,9 +16,10 @@ This repository contains a MATLAB script for performing Constrained Principal Co
 
 1. Clone the repository into your machine.
 2. Place your study data somewhere inside the folder. (IMPORTANT: Make sure to only have ONE folder/study and NO other folders containing pre-existing processed data. This is due to parts of the script recursively searching through your directories for files and having duplicate file/folder names will cause unexpected behaviours)
-3. Edit `configs.m` with your specific parameters (see Configuration section below)
-4. Run the following command in MATLAB terminal: `run_cpca_cmd`
-5. Review the displayed parameters and confirm to begin analysis
+3. IMPORTANT: Open the GUI version of fMRI CPCA by running cpca.m from MATLAB. This is create necessary default files that will be used by the command-line code. 
+4. Edit `configs.m` with your specific parameters (see Configuration section below)
+5. Run the following command in MATLAB terminal: `run_cpca_cmd`
+6. Review the displayed parameters and confirm to begin analysis
 
 ## Configuration
 
