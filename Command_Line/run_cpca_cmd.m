@@ -55,10 +55,16 @@ function validate_config(config)
         end
     end
     
+     % Check if cpca directory exists
+    if ~exist(config.cpcaDIR, 'dir')
+        error('CPCA directory does not exist: %s', config.cpcaDIR);
+    end
+    
     % Check if base directory exists
     if ~exist(config.baseDIR, 'dir')
         error('Base directory does not exist: %s', config.baseDIR);
     end
+    
 end
 
 function display_parameters(config)
