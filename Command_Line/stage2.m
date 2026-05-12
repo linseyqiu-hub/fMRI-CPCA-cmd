@@ -59,7 +59,7 @@ save_state(STATE_FILE, state);
 addpath(genpath(config.cpcaDIR));
  
 try
-    %cleanup_stage2(config.baseDIR);
+    cleanup_stage2(config.baseDIR);
     % Step 1: Normalize Z-data matrix
     fprintf('\n1. Normalizing Z-data matrix...\n');
     cd(config.baseDIR);

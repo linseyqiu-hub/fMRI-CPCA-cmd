@@ -1,4 +1,5 @@
 function cleanup_stage3(base_dir)
+    cd(base_dir)
     % component extraction outputs
     % fs_path builds paths under base_dir — common pattern is G/ folder
     rmdir_if_exists(fullfile(base_dir, 'G'));

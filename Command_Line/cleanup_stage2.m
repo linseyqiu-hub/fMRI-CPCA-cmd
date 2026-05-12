@@ -1,5 +1,6 @@
 function cleanup_stage2(base_dir)
     % Z matrix and normalization outputs
+    cd(base_dir)
     rmdir_if_exists(fullfile(base_dir, 'Z'));
     rmdir_if_exists(fullfile(base_dir, 'log'));
     

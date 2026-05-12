@@ -1,4 +1,4 @@
-function stage3()
+pwfunction stage3()
 original_dir = pwd;
 % stage3 - Run Stage 3: Component extraction and rotation
 %
@@ -56,7 +56,7 @@ save_state(STATE_FILE, state);
 addpath(genpath(config.cpcaDIR));
  
 try
-    %cleanup_stage3(config.baseDIR);
+    cleanup_stage3(config.baseDIR);
     % Step 1: Extract components
     fprintf('\n1. Extracting components...\n');
     cd(config.baseDIR);
