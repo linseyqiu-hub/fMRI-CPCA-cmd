@@ -5,10 +5,10 @@
 config = struct();
 
 % Base directory of fMRI-CPCA script
-config.cpcaDIR = '/media/abhijit.chinchani/My Passport/Abhijit/fMRI_Analysis/fMRI_CPCA_cmd/fMRI_CPCA_CMD_Abhijit/code/fMRI-CPCA-cmd/'; % Should be PATH/cpca_1.2.2.23
+config.cpcaDIR = 'D:\fMRI-CPCA\fMRI-CPCA-cmd'; % Should be PATH/cpca_1.2.2.23
 
 % Base directory containing your data
-config.baseDIR = '/media/abhijit.chinchani/My Passport/Abhijit/fMRI_Analysis/fMRI_CPCA_cmd/fMRI_CPCA_CMD_Abhijit/data/example_data_1/example_data_Multiple_Groups_Subjects_Runs/';
+config.baseDIR = 'D:\fMRI-CPCA\example_data_Multiple_Groups_Subjects_Runs';
 
 % File wildcard for scan selection (e.g., 'swa*nii' or 'fsn*img')
 config.filewildcard = 'fsn*img';

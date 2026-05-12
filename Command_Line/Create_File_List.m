@@ -45,7 +45,7 @@ function Create_File_List(subject_dir,filewildcard,output_dir,filename,isMulFreq
 % --- Wayne Su April 30, 2024
 
 % ----check inputs--------------------------
-
+% set default values if missing
 if nargin < 5  
     isMulFreq = 0; 
 end
