@@ -18,7 +18,7 @@ restoredefaultpath;
 % Suppress warnings
 warning('off', 'all');
  
-STATE_FILE = 'pipeline_state.mat';
+STATE_FILE = fullfile(pwd, 'pipeline_state.mat');
  
 % ── Load config ───────────────────────────────────────────
 config_file = 'configs.m';
@@ -28,7 +28,7 @@ try
 catch ME
     error('Error loading configuration file: %s\n%s', config_file, ME.message);
 end
- 
+original_dir = pwd;
 % ── Validate config ───────────────────────────────────────
 validate_config(config);
  
@@ -36,7 +36,7 @@ validate_config(config);
 display_parameters(config);
 
 % ── Initialize fresh state ────────────────────────────────
-state = init_state(config);
+state = init_state();
  
 % ── Acquire lock ──────────────────────────────────────────
 fprintf('\n==== Stage 1: Scan List + Mask Creation ====\n');
@@ -49,23 +49,23 @@ save_state(STATE_FILE, state);
  
 try
     % ── Add CPCA toolbox to path ──────────────────────────────
-    addpath(genpath(state.config.cpcaDIR));
+    addpath(genpath(config.cpcaDIR));
     % Step 1: Create scan list
     fprintf('\n1. Creating scan list...\n');
-    Create_File_List(state.config.baseDIR, state.config.filewildcard);
+    Create_File_List(config.baseDIR, config.filewildcard);
     fprintf('   Completed: files.txt created.\n');
  
     % Step 2: Create Z-data matrix + mask
     fprintf('\n2. Creating mask and ZInfo...\n');
-    if isfield(state.config, 'createMask') && state.config.createMask
-        Create_ZData_Matrix(state.config.baseDIR, ...
+    if isfield(config, 'createMask') && config.createMask
+        Create_ZData_Matrix(config.baseDIR, ...
             'fileName',   'files.txt', ...
-            'maskName',   state.config.maskName, ...
-            'maskMethod', state.config.maskMethod);
+            'maskName',   config.maskName, ...
+            'maskMethod', config.maskMethod);
     else
-        Create_ZData_Matrix(state.config.baseDIR, ...
+        Create_ZData_Matrix(config.baseDIR, ...
             'fileName', 'files.txt', ...
-            'maskName', state.config.maskName);
+            'maskName', config.maskName);
     end
     fprintf('   Completed: ZInfo.mat and mask created.\n');
  
@@ -80,6 +80,7 @@ try
     fprintf('    - mask_verification.txt\n');
     fprintf('    - mask visually in FSL/MRIcron\n');
     fprintf('>>> When satisfied, run: >> stage2\n\n');
+    cd(original_dir);
  
 catch ME
     state.status.stage1        = 'failed';
@@ -87,6 +88,7 @@ catch ME
     save_state(STATE_FILE, state);
     fprintf('\nStage 1 failed: %s\n', ME.message);
     fprintf('Error at line %d in %s\n', ME.stack(1).line, ME.stack(1).name);
+    cd(original_dir);
     rethrow(ME);
 end
  

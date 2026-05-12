@@ -1,8 +1,7 @@
-function state = init_state(config)
+function state = init_state()
 % init_state - Initialize a fresh pipeline state from config
 % Called when no pipeline_state.mat exists or user wants a fresh run
  
-state.config = config;
  
 state.stages = {'stage1', 'stage2', 'stage3', 'stage4'};
  
