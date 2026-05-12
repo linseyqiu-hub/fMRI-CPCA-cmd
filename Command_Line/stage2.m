@@ -59,21 +59,26 @@ save_state(STATE_FILE, state);
 addpath(genpath(config.cpcaDIR));
  
 try
- 
+    %cleanup_stage2(config.baseDIR);
     % Step 1: Normalize Z-data matrix
     fprintf('\n1. Normalizing Z-data matrix...\n');
+    cd(config.baseDIR);
     process_subject_normalization_cmd(config.baseDIR, ...
         'linearRegress',    config.linearRegress, ...
         'quadraticRegress', config.quadraticRegress, ...
         'meanCenter',       config.meanCenter, ...
         'standardize',      config.standardize);
- 
+    cd(config.cpcaDIR);
     if isfield(config, 'movementRegress') && config.movementRegress
+        cd(config.baseDIR);
         process_subject_normalization_cmd(config.baseDIR, 'movementRegress', 1);
+        cd(config.cpcaDIR);
     end
  
     if isfield(config, 'userCovariants') && ~isempty(config.userCovariants)
+        cd(config.baseDIR);
         process_subject_normalization_cmd(config.baseDIR, 'userCovariants', config.userCovariants);
+        cd(config.cpcaDIR);
     end
     fprintf('   Completed: Z matrix normalized.\n');
  
@@ -88,25 +93,33 @@ try
  
     % Step 3: Parse timing
     fprintf('\n3. Parsing timing onsets...\n');
+    cd(config.baseDIR);
     timing = parse_timing(config.baseDIR, ...
         config.num_subjects, ...
         config.num_runs, ...
         config.num_conditions);
+    cd(config.cpcaDIR);
     fprintf('   Completed: Timing parsed.\n');
  
     % Step 4: Create timing onsets template
     fprintf('\n4. Creating timing onsets template...\n');
+    cd(config.baseDIR);
     create_onsets_template_cmd(config.baseDIR, GH, timing);
+    cd(config.cpcaDIR);
     fprintf('   Completed: timing_onsets_template.txt created.\n');
  
     % Step 5: Create G matrix
     fprintf('\n5. Creating G matrix...\n');
+    cd(config.baseDIR);
     Create_GMatrix(config.baseDIR, GH, 'timing_onsets_template.txt');
+    cd(config.cpcaDIR);
     fprintf('   Completed: G matrix created.\n');
  
     % Step 6: Regress G matrix
     fprintf('\n6. Regressing G matrix...\n');
+    cd(config.baseDIR);
     RegressG(config.baseDIR, 'G');
+    cd(config.cpcaDIR);
     fprintf('   Completed: G matrix regressed.\n');
  
     % ── Release lock — mark done ───────────────────────────

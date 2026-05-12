@@ -56,17 +56,21 @@ save_state(STATE_FILE, state);
 addpath(genpath(config.cpcaDIR));
  
 try
- 
+    %cleanup_stage3(config.baseDIR);
     % Step 1: Extract components
     fprintf('\n1. Extracting components...\n');
+    cd(config.baseDIR);
     Extract_Rotate_Components(config.baseDIR, config.num_components, 'E', 'G');
+    cd(config.cpcaDIR);
     fprintf('   Completed: %d components extracted.\n', config.num_components);
  
     % Step 2: Rotate components (if specified)
     if isfield(config, 'rotation_method') && ~isempty(config.rotation_method)
         fprintf('\n2. Rotating components using %s...\n', config.rotation_method);
         rot_method = {config.rotation_method};
+        cd(config.baseDIR);
         Extract_Rotate_Components(config.baseDIR, config.num_components, 'R', 'G', rot_method);
+        cd(config.cpcaDIR);
         fprintf('   Completed: Components rotated.\n');
     else
         fprintf('\n2. No rotation method specified — skipping rotation.\n');

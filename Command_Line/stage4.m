@@ -63,7 +63,9 @@ try
  
     fprintf('\n1. Flipping components: [%s]...\n', num2str(config.components_to_flip));
     for comp = config.components_to_flip
+        cd(config.baseDIR);
         Flip_Component(config.baseDIR, comp);
+        cd(config.cpcaDIR)
         fprintf('   Component %d flipped.\n', comp);
     end
     fprintf('   Completed: All specified components flipped.\n');

@@ -52,20 +52,26 @@ try
     addpath(genpath(config.cpcaDIR));
     % Step 1: Create scan list
     fprintf('\n1. Creating scan list...\n');
+    cd(config.baseDIR);
     Create_File_List(config.baseDIR, config.filewildcard);
+    cd(config.cpcaDIR);
     fprintf('   Completed: files.txt created.\n');
  
     % Step 2: Create Z-data matrix + mask
     fprintf('\n2. Creating mask and ZInfo...\n');
     if isfield(config, 'createMask') && config.createMask
+        cd(config.baseDIR);
         Create_ZData_Matrix(config.baseDIR, ...
             'fileName',   'files.txt', ...
             'maskName',   config.maskName, ...
             'maskMethod', config.maskMethod);
+        cd(config.cpcaDIR);
     else
+        cd(config.baseDIR);
         Create_ZData_Matrix(config.baseDIR, ...
             'fileName', 'files.txt', ...
             'maskName', config.maskName);
+        cd(config.cpcaDIR);
     end
     fprintf('   Completed: ZInfo.mat and mask created.\n');
  
