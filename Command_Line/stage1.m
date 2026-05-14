@@ -103,7 +103,7 @@ end
 function validate_config(config)
     % Validate essential parameters
     required_fields = {'cpcaDIR', 'baseDIR', 'filewildcard', 'condition_names', 'bins', 'TR', 'inScans', 'normalize_G', ...
-                     'num_subjects', 'num_runs', 'num_conditions', 'num_components'};
+                     'num_subjects', 'num_runs', 'num_conditions', 'solutions'};
     
     for i = 1:length(required_fields)
         if ~isfield(config, required_fields{i})
@@ -111,7 +111,7 @@ function validate_config(config)
         end
     end
     
-     % Check if cpca directory exists
+    % Check if cpca directory exists
     if ~exist(config.cpcaDIR, 'dir')
         error('CPCA directory does not exist: %s', config.cpcaDIR);
     end
@@ -120,12 +120,53 @@ function validate_config(config)
     if ~exist(config.baseDIR, 'dir')
         error('Base directory does not exist: %s', config.baseDIR);
     end
+
+    % Validate each solution
+    solution_required_fields = {'num_components'};
+    valid_rotation_methods = {'varimax', 'promax', 'hrfmax', 'orthomax', 'quartimax', 'equamax', 'procrustes'};
+
+for s = 1:length(config.solutions)
+    sol = config.solutions(s);
+
+    % Check required fields exist
+    for f = 1:length(solution_required_fields)
+        if ~isfield(sol, solution_required_fields{f})
+            error('Solution %d is missing required field: %s', s, solution_required_fields{f});
+        end
+    end
+
+    % Validate num_components is a positive integer
+    if ~isnumeric(sol.num_components) || sol.num_components < 1 || floor(sol.num_components) ~= sol.num_components
+        error('Solution %d: num_components must be a positive integer, got: %g', s, sol.num_components);
+    end
+
+    % Validate rotation_method only if provided
+    if isfield(sol, 'rotation_method')
+        if ~ischar(sol.rotation_method) || ~ismember(sol.rotation_method, valid_rotation_methods)
+            error('Solution %d: invalid rotation_method "%s". Must be one of: %s', ...
+                s, sol.rotation_method, strjoin(valid_rotation_methods, ', '));
+        end
+    end
+
+    % Validate components_to_flip only if provided
+    if isfield(sol, 'components_to_flip')
+        if ~isnumeric(sol.components_to_flip)
+            error('Solution %d: components_to_flip must be a numeric vector (use [] for none)', s);
+        end
+        if any(sol.components_to_flip > sol.num_components) || any(sol.components_to_flip < 1)
+            error('Solution %d: components_to_flip contains out-of-range indices (must be between 1 and %d)', ...
+                s, sol.num_components);
+        end
+    end
+
+end
     
+
 end
 
 function display_parameters(config)
     fprintf('\n==== CPCA Analysis Parameters ====\n');
-    fprintf('Base CPCA Directory: %s\n', config.cpcaDIR)
+    fprintf('Base CPCA Directory: %s\n', config.cpcaDIR);
     fprintf('Base Directory: %s\n', config.baseDIR);
     fprintf('File Wildcard: %s\n', config.filewildcard);
     fprintf('Mask Name: %s\n', config.maskName);
@@ -137,10 +178,20 @@ function display_parameters(config)
     fprintf('TR: %g\n', config.TR);
     fprintf('Timing in Scans: %d\n', config.inScans);
     fprintf('Normalize G Matrix: %d\n', config.normalize_G);
-    fprintf('Number of Components: %d\n', config.num_components);
-    if isfield(config, 'rotation_method') && ~isempty(config.rotation_method)
-        fprintf('Rotation Method: %s\n', config.rotation_method);
+
+    % Display each solution
+    fprintf('Solutions (%d total):\n', length(config.solutions));
+    for s = 1:length(config.solutions)
+        sol = config.solutions(s);
+        fprintf('  Solution %d:\n', s);
+        fprintf('    Number of Components: %d\n', sol.num_components);
+        if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method)
+            fprintf('    Rotation Method: %s\n', sol.rotation_method);
+        end
+        if isfield(sol, 'components_to_flip') && ~isempty(sol.components_to_flip)
+            fprintf('    Components to Flip: %s\n', num2str(sol.components_to_flip));
+        end
     end
+
     fprintf('==============================\n\n');
 end
-

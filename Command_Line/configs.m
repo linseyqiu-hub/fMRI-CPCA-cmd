@@ -39,6 +39,9 @@ config.num_runs = 2;        % Number of runs per subject
 config.num_conditions = 4;  % Number of conditions
 
 % Component extraction parameters
-config.num_components = 2;  % Number of components to extract
-config.rotation_method = 'varimax';  % Rotation method: varimax, promax, hrfmax, orthomax, quartimax, equamax, procrustes
-config.components_to_flip = [];  % List of component indices to flip (e.g., [2] to flip second component)
+config.solutions(1).num_components = 2;  % Number of components to extract
+config.solutions(1).rotation_method = 'varimax';  % Rotation method: varimax, promax, hrfmax, orthomax, quartimax, equamax, procrustes
+config.solutions(1).components_to_flip = [];  % List of component indices to flip (e.g., [2] to flip second component)
+config.solutions(2).num_components = 3;  % Number of components to extract
+config.solutions(2).rotation_method = 'varimax';  % Rotation method: varimax, promax, hrfmax, orthomax, quartimax, equamax, procrustes
+config.solutions(2).components_to_flip = [1];  % List of component indices to flip (e.g., [2] to flip second component)

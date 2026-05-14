@@ -4,10 +4,10 @@ function stage4()
 % Usage: >> stage4
 %
 % Stage 4 covers:
-%   - Flip_Component : flip specified components
+%   - Flip_Component : flip specified components per solution
 %
-% Set config.components_to_flip in configs.m before running.
-% Leave empty [] to skip flipping.
+% Set config.solutions(s).components_to_flip in configs.m before running.
+% Leave empty [] to skip flipping for that solution.
 original_dir = pwd;
 STATE_FILE = fullfile(pwd, 'pipeline_state.mat'); 
  
@@ -17,6 +17,7 @@ if ~exist(STATE_FILE, 'file')
     return;
 end
 state = load_state(STATE_FILE);
+
 % ── Load config ───────────────────────────────────────────
 config_file = 'configs.m';
 try
@@ -40,11 +41,20 @@ if strcmp(state.status.stage4, 'pending')
     fprintf('Run >> unlock to reset and retry.\n\n');
     return;
 end
- 
-% ── Check components_to_flip ──────────────────────────────
-if ~isfield(config, 'components_to_flip') || isempty(config.components_to_flip)
-    fprintf('\nNo components specified to flip (config.components_to_flip is empty).\n');
-    fprintf('Edit configs.m and set config.components_to_flip = [x, y, ...].\n');
+
+% ── Check at least one solution has components_to_flip ────
+has_flips = false;
+for s = 1:length(config.solutions)
+    sol = config.solutions(s);
+    if isfield(sol, 'components_to_flip') && ~isempty(sol.components_to_flip)
+        has_flips = true;
+        break;
+    end
+end
+
+if ~has_flips
+    fprintf('\nNo components specified to flip across any solution.\n');
+    fprintf('Edit configs.m and set components_to_flip for the desired solution(s).\n');
     fprintf('Then rerun >> stage4.\n\n');
     return;
 end
@@ -60,18 +70,31 @@ save_state(STATE_FILE, state);
 addpath(genpath(config.cpcaDIR));
  
 try
- 
-    fprintf('\n1. Flipping components: [%s]...\n', num2str(config.components_to_flip));
-    for comp = config.components_to_flip
-        cd(config.baseDIR);
-        Flip_Component(config.baseDIR, comp);
-        cd(config.cpcaDIR)
-        fprintf('   Component %d flipped.\n', comp);
+
+    % Loop over each solution
+    for s = 1:length(config.solutions)
+        sol = config.solutions(s);
+
+        fprintf('\n==== Solution %d/%d: %d components ====\n', s, length(config.solutions), sol.num_components);
+
+        if ~isfield(sol, 'components_to_flip') || isempty(sol.components_to_flip)
+            fprintf('   No components to flip for this solution — skipping.\n');
+            continue;
+        end
+
+        fprintf('\n1. Flipping components: [%s]...\n', num2str(sol.components_to_flip));
+        for comp = sol.components_to_flip
+            cd(config.baseDIR);
+            Flip_Component(config.baseDIR, comp);
+            cd(config.cpcaDIR);
+            fprintf('   Component %d flipped.\n', comp);
+        end
+        fprintf('   Completed: All specified components flipped for solution %d.\n', s);
+
     end
-    fprintf('   Completed: All specified components flipped.\n');
- 
+
     % ── Release lock — mark done ───────────────────────────
-    state.status.stage4        = 'done';
+    state.status.stage4         = 'done';
     state.timestamps.stage4_end = datestr(now);
     save_state(STATE_FILE, state);
  
@@ -80,7 +103,7 @@ try
     cd(original_dir);
  
 catch ME
-    state.status.stage4        = 'failed';
+    state.status.stage4         = 'failed';
     state.timestamps.stage4_end = datestr(now);
     save_state(STATE_FILE, state);
     fprintf('\nStage 4 failed: %s\n', ME.message);
@@ -90,4 +113,3 @@ catch ME
 end
  
 end
-

@@ -1,4 +1,4 @@
-pwfunction stage3()
+function stage3()
 original_dir = pwd;
 % stage3 - Run Stage 3: Component extraction and rotation
 %
@@ -56,39 +56,47 @@ save_state(STATE_FILE, state);
 addpath(genpath(config.cpcaDIR));
  
 try
-    cleanup_stage3(config.baseDIR);
+   cleanup_stage3(config.baseDIR);
+
+% Loop over each solution
+for s = 1:length(config.solutions)
+    sol = config.solutions(s);
+
+    fprintf('\n==== Solution %d/%d: %d components ====\n', s, length(config.solutions), sol.num_components);
+
     % Step 1: Extract components
     fprintf('\n1. Extracting components...\n');
     cd(config.baseDIR);
-    Extract_Rotate_Components(config.baseDIR, config.num_components, 'E', 'G');
+    Extract_Rotate_Components(config.baseDIR, sol.num_components, 'E', 'G');
     cd(config.cpcaDIR);
-    fprintf('   Completed: %d components extracted.\n', config.num_components);
- 
+    fprintf('   Completed: %d components extracted.\n', sol.num_components);
+
     % Step 2: Rotate components (if specified)
-    if isfield(config, 'rotation_method') && ~isempty(config.rotation_method)
-        fprintf('\n2. Rotating components using %s...\n', config.rotation_method);
-        rot_method = {config.rotation_method};
+    if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method)
+        fprintf('\n2. Rotating components using %s...\n', sol.rotation_method);
+        rot_method = {sol.rotation_method};
         cd(config.baseDIR);
-        Extract_Rotate_Components(config.baseDIR, config.num_components, 'R', 'G', rot_method);
+        Extract_Rotate_Components(config.baseDIR, sol.num_components, 'R', 'G', rot_method);
         cd(config.cpcaDIR);
         fprintf('   Completed: Components rotated.\n');
     else
-        fprintf('\n2. No rotation method specified — skipping rotation.\n');
+        fprintf('\n2. No rotation method specified for solution %d — skipping rotation.\n', s);
     end
- 
-    % ── Release lock — mark done ───────────────────────────
-    state.status.stage3        = 'done';
-    state.current_stage        = 3;
-    state.timestamps.stage3_end = datestr(now);
-    save_state(STATE_FILE, state);
- 
-    fprintf('\n==== Stage 3 Complete ====\n');
-    fprintf('>>> MANUAL QC: Inspect component maps before proceeding.\n');
-    fprintf('    - Identify which components need flipping\n');
-    fprintf('    - Update config.components_to_flip in configs.m\n');
-    fprintf('>>> When satisfied, run: >> stage4\n\n');
-    cd(original_dir);
- 
+
+end
+
+% ── Release lock — mark done ───────────────────────────
+state.status.stage3         = 'done';
+state.current_stage         = 3;
+state.timestamps.stage3_end = datestr(now);
+save_state(STATE_FILE, state);
+
+fprintf('\n==== Stage 3 Complete ====\n');
+fprintf('>>> MANUAL QC: Inspect component maps before proceeding.\n');
+fprintf('    - Identify which components need flipping\n');
+fprintf('    - Update config.components_to_flip in configs.m\n');
+fprintf('>>> When satisfied, run: >> stage4\n\n');
+cd(original_dir);
 catch ME
     state.status.stage3        = 'failed';
     state.timestamps.stage3_end = datestr(now);
