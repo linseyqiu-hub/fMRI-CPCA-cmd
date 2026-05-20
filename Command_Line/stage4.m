@@ -68,28 +68,81 @@ save_state(STATE_FILE, state);
  
 % ── Add CPCA toolbox to path ──────────────────────────────
 addpath(genpath(config.cpcaDIR));
+% resolve output directory
+if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
+       outputDIR = config.outputDIR;
+   else
+       outputDIR = config.baseDIR;
+end
  
 try
 
     % Loop over each solution
+    % Loop over each solution
     for s = 1:length(config.solutions)
+
         sol = config.solutions(s);
 
-        fprintf('\n==== Solution %d/%d: %d components ====\n', s, length(config.solutions), sol.num_components);
+        fprintf('\n==== Solution %d/%d: %d components ====\n', ...
+            s, length(config.solutions), sol.num_components);
 
-        if ~isfield(sol, 'components_to_flip') || isempty(sol.components_to_flip)
-            fprintf('   No components to flip for this solution — skipping.\n');
-            continue;
+        % ============================================================
+        % Flip UNROTATED components
+        % ============================================================
+        if isfield(sol.components_to_flip, 'unrotated') && ...
+                ~isempty(sol.components_to_flip.unrotated)
+
+            fprintf('\n1. Flipping UNROTATED components: [%s]\n', ...
+                num2str(sol.components_to_flip.unrotated));
+
+            for comp = sol.components_to_flip.unrotated
+
+                cd(outputDIR);
+
+                Flip_Component( ...
+                    outputDIR, ...
+                    sol.num_components, ...
+                    comp, ...
+                    'unrotated' ...
+                );
+
+                cd(config.cpcaDIR);
+
+                fprintf('   Unrotated component %d flipped.\n', comp);
+
+            end
         end
 
-        fprintf('\n1. Flipping components: [%s]...\n', num2str(sol.components_to_flip));
-        for comp = sol.components_to_flip
-            cd(config.baseDIR);
-            Flip_Component(config.baseDIR, comp);
-            cd(config.cpcaDIR);
-            fprintf('   Component %d flipped.\n', comp);
+        % ============================================================
+        % Flip ROTATED components
+        % ============================================================
+        if isfield(sol.components_to_flip, 'rotated') && ...
+                ~isempty(sol.components_to_flip.rotated)
+
+            fprintf('\n2. Flipping %s components: [%s]\n', ...
+                sol.rotation_method, ...
+                num2str(sol.components_to_flip.rotated));
+
+            for comp = sol.components_to_flip.rotated
+
+                cd(outputDIR);
+
+                Flip_Component( ...
+                    outputDIR, ...
+                    sol.num_components, ...
+                    comp, ...
+                    sol.rotation_method ...
+                );
+
+                cd(config.cpcaDIR);
+
+                fprintf('   %s component %d flipped.\n', ...
+                    sol.rotation_method, comp);
+
+            end
         end
-        fprintf('   Completed: All specified components flipped for solution %d.\n', s);
+
+        fprintf('\nCompleted flips for solution %d.\n', s);
 
     end
 

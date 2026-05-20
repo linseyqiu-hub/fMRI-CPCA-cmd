@@ -1,4 +1,4 @@
-function Flip_Component(base_dir, comp_to_flip)
+function Flip_Component(base_dir, target_num_components, comp_to_flip, flip_mode)
 %% flip the sign of loading for choosen component
 % comp_to_flip, which component to be flipped
 % will flip all rotated and unrotated components.
@@ -11,6 +11,10 @@ end
 if isempty(comp_to_flip)
     disp('wrong component!')
     return
+end
+
+if nargin < 4 || isempty(flip_mode)
+    flip_mode = 'unrotated';
 end
 % check the exiting of Z matrix
 if exist([base_dir filesep 'ZInfo.mat'], 'file') ~= 2
@@ -51,16 +55,38 @@ CompTypeList = '';
 % ---------------------------
 % add the files from valid subdirectories (n_components)
 % ---------------------------
-rs = define_rotations();
-valid_dirs = {'unrotated'};
-for ii = 1:size(rs)
-    valid_dirs = [valid_dirs {rs(ii).method}];
-end
+% --------------------------------------------------
+% Only target the requested rotation directory
+% --------------------------------------------------
+valid_dirs = {flip_mode};
 [comp_list num_comps] = directory_list( [base_dir filesep criteria.prefix filesep] );
 if num_comps > 0
 
     for compcount = 1:size(comp_list, 1 )
-        comp_dir = [pwd filesep criteria.prefix filesep char( comp_list(compcount) ) filesep];
+
+        comp_dir_name = char(comp_list(compcount));
+
+    % --------------------------------------------
+    % Extract numeric component count from:
+    % "2_components"
+    % --------------------------------------------
+        tokens = regexp(comp_dir_name, '^(\d+)_components$', 'tokens');
+
+        if isempty(tokens)
+            continue;
+        end
+
+        current_num_components = str2double(tokens{1}{1});
+
+    % --------------------------------------------
+    % Only process requested solution
+    % --------------------------------------------
+        if current_num_components ~= target_num_components
+            continue;
+        end
+
+        comp_dir = [pwd filesep criteria.prefix ...
+            filesep comp_dir_name filesep];
         if ~isempty( criteria.Hmodel )
             comp_dir = [comp_dir criteria.Hmodel filesep];
         end
