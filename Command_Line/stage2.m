@@ -57,28 +57,35 @@ save_state(STATE_FILE, state);
  
 % ── Add CPCA toolbox to path ──────────────────────────────
 addpath(genpath(config.cpcaDIR));
- 
+% resolve output directory
+if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
+       outputDIR = config.outputDIR;
+   else
+       outputDIR = config.baseDIR;
+end
 try
-    cleanup_stage2(config.baseDIR);
+    cleanup_stage2(outputDIR);
     % Step 1: Normalize Z-data matrix
     fprintf('\n1. Normalizing Z-data matrix...\n');
-    cd(config.baseDIR);
+    cd(outputDIR);
     process_subject_normalization_cmd(config.baseDIR, ...
         'linearRegress',    config.linearRegress, ...
         'quadraticRegress', config.quadraticRegress, ...
         'meanCenter',       config.meanCenter, ...
-        'standardize',      config.standardize);
+        'standardize',      config.standardize, ...
+        'output_dir',       outputDIR);
+
     cd(config.cpcaDIR);
     if isfield(config, 'movementRegress') && config.movementRegress
-        cd(config.baseDIR);
-        process_subject_normalization_cmd(config.baseDIR, 'movementRegress', 1);
-        cd(config.cpcaDIR);
+        process_subject_normalization_cmd(config.baseDIR, ...
+            'movementRegress', 1, ...
+            'output_dir',      outputDIR);
     end
- 
+
     if isfield(config, 'userCovariants') && ~isempty(config.userCovariants)
-        cd(config.baseDIR);
-        process_subject_normalization_cmd(config.baseDIR, 'userCovariants', config.userCovariants);
-        cd(config.cpcaDIR);
+        process_subject_normalization_cmd(config.baseDIR, ...
+            'userCovariants', config.userCovariants, ...
+            'output_dir',     outputDIR);
     end
     fprintf('   Completed: Z matrix normalized.\n');
  
@@ -103,22 +110,22 @@ try
  
     % Step 4: Create timing onsets template
     fprintf('\n4. Creating timing onsets template...\n');
-    cd(config.baseDIR);
-    create_onsets_template_cmd(config.baseDIR, GH, timing);
+    cd(outputDIR);
+    create_onsets_template_cmd(config.baseDIR, GH, timing, outputDIR);
     cd(config.cpcaDIR);
     fprintf('   Completed: timing_onsets_template.txt created.\n');
  
     % Step 5: Create G matrix
     fprintf('\n5. Creating G matrix...\n');
-    cd(config.baseDIR);
-    Create_GMatrix(config.baseDIR, GH, 'timing_onsets_template.txt');
+    cd(outputDIR);
+    Create_GMatrix(config.baseDIR, GH, fullfile(outputDIR, 'timing_onsets_template.txt'), outputDIR);
     cd(config.cpcaDIR);
     fprintf('   Completed: G matrix created.\n');
  
     % Step 6: Regress G matrix
     fprintf('\n6. Regressing G matrix...\n');
-    cd(config.baseDIR);
-    RegressG(config.baseDIR, 'G');
+    cd(outputDIR);
+    RegressG(config.baseDIR, 'G', outputDIR);
     cd(config.cpcaDIR);
     fprintf('   Completed: G matrix regressed.\n');
  
@@ -132,8 +139,8 @@ try
     fprintf('>>> MANUAL QC: Inspect scree plot before proceeding.\n');
     fprintf('    - Singular Values.png\n');
     fprintf('    - Update config.num_components in configs.m\n');
-    fprintf('>>> When satisfied, run: >> stage3\n\n');
     cd(original_dir);
+    fprintf('>>> When satisfied, run: >> stage3\n\n');
  
 catch ME
     state.status.stage2        = 'failed';

@@ -18,7 +18,7 @@ function process_subject_normalization_cmd(base_dir,varargin)
 % ---                       'meanCenter',1,...
 % ---                       'standardize',1)
 
-
+% add output_dir parameter
 defaultLinearRegress = 1;
 defaultQuadraticRegress = 1;
 defaultMovementRegress = 0;
@@ -28,6 +28,7 @@ defaultStandardize = 1;
 
 p = inputParser;
 addRequired(p,'baseDir',@(x)validateattributes(x,{'char'},{'nonempty'}));
+addParameter(p,'output_dir','', @(x)validateattributes(x,{'char'},{}));
 addParameter(p,'linearRegress',defaultLinearRegress, @(x)validateattributes(x,{'numeric'},{'nonempty','integer'}))
 addParameter(p,'quadraticRegress',defaultQuadraticRegress, @(x)validateattributes(x,{'numeric'},{'nonempty','integer'}))
 addParameter(p,'movementRegress',defaultMovementRegress, @(x)validateattributes(x,{'numeric'},{'nonempty','integer'}))
@@ -38,11 +39,18 @@ addParameter(p,'standardize',defaultStandardize, @(x)validateattributes(x,{'nume
 
 parse(p,base_dir,varargin{:});
 
+
 % ----check inputs--------------------------
 base_dir = p.Results.baseDir;
-cd(base_dir)
 
-if exist([base_dir filesep 'ZInfo.mat'], 'file') ~= 2
+if isempty(p.Results.output_dir)
+    output_dir = base_dir;
+else
+    output_dir = p.Results.output_dir;
+end
+cd(output_dir)
+
+if exist([output_dir filesep 'ZInfo.mat'], 'file') ~= 2
     disp('Zinfo file does not exist.');
     return
 end

@@ -1,6 +1,9 @@
-function [txt, onsetsfile, Zheader] = import_onsets_list_cmd(base_dir, filename, model_type, Zheader, scan_information)
+function [txt, onsetsfile, Zheader] = import_onsets_list_cmd(base_dir, filename, model_type, Zheader, scan_information, output_dir)
 % will return the file name on successful import
-
+% resolve output_dir
+if nargin < 6 || isempty(output_dir)
+    output_dir = base_dir;
+end
 
   %base_dir = './example_data_Multiple_Groups_Subjects_Runs';
   %filename = 'timing_onsets.txt';
@@ -12,7 +15,8 @@ function [txt, onsetsfile, Zheader] = import_onsets_list_cmd(base_dir, filename,
 
   import_file = constant_define( 'G_IMPORT_NAME' );
 
-  fullpath = [base_dir filesep filename];
+  fullpath = fullfile(filename); 
+  fprintf(fullpath);
 
   %text = fileread(fullpath);
   fid = fopen(fullpath);

@@ -1,6 +1,7 @@
 function cleanup_stage2(base_dir)
     % Z matrix and normalization outputs
     cd(base_dir)
+    disp(base_dir);
     rmdir_if_exists(fullfile(base_dir, 'Z'));
     rmdir_if_exists(fullfile(base_dir, 'log'));
     
@@ -31,8 +32,13 @@ end
 
 function rmdir_if_exists(dirpath)
     if exist(dirpath, 'dir')
-        rmdir(dirpath, 's');
-        fprintf('   Deleted folder: %s\n', dirpath);
+        try
+            rmdir(dirpath, 's');
+            fprintf('   Deleted folder: %s\n', dirpath);
+        catch ME
+            warning('Could not delete folder: %s\nReason: %s\nCheck if any files inside are open or locked.', dirpath, ME.message);
+        end
     end
 end
+
 

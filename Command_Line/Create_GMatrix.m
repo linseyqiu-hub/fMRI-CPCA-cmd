@@ -1,4 +1,4 @@
-function Create_GMatrix(base_dir,GH, filename )
+function Create_GMatrix(base_dir, GH, filename, output_dir)
 % create G matrix based on onsets file and Zinfo.mat
 % requirement of GH structure
 %   GH.condition_name: list of condtion name
@@ -42,21 +42,26 @@ GH.model_type = 0; %  0 for FIR, 1 for HRF (HRF no longer to support)
 % 
 % base_dir = '/Users/wsu/example_data_Multiple_Groups_Subjects_Runs';
 % filename = 'timing_onsets.txt';
-cd(base_dir);
+% resolve output_dir
+if nargin < 4 || isempty(output_dir)
+    output_dir = base_dir;
+end
+cd(output_dir);
 
 % check the exiting of Z matrix
-if exist([base_dir filesep 'ZInfo.mat'], 'file') ~= 2
+if exist(fullfile(output_dir, 'ZInfo.mat'), 'file') ~= 2
     disp('List or Zinfo file does not exist');
     return
 end
-fullpath = [base_dir filesep 'ZInfo.mat'];
-eval( [ 'load( ''' fullpath ''', ''Zheader'' ,''scan_information''); '] );
+fullpath = fullfile(output_dir, 'ZInfo.mat');
+eval(['load(''' fullpath ''', ''Zheader'', ''scan_information'');']);
+
 
 Zheader.conditions.Names = GH.condition_name;
 GH.conditions = size(GH.condition_name, 2 ); %Number of conditions
 GH.subject_encoded = zeros( 1, Zheader.num_subjects ) * GH.conditions;
 
-[txt, onsetsfile, Zheader] = import_onsets_list_cmd(base_dir, filename, GH.model_type, Zheader,scan_information);
+[txt, onsetsfile, Zheader] = import_onsets_list_cmd(base_dir, filename, GH.model_type, Zheader, scan_information, output_dir);
 if ( ~isempty( txt ) )
     fprintf('File %s was created.\n', txt);
 else
@@ -75,7 +80,7 @@ GH.source = onsetsfile; %GH.imported_from;
 % --------------------------------
 % --- path to segmented output
 % --------------------------------
-GH.path_to_segs = [ pwd filesep 'Gsegs' filesep];
+GH.path_to_segs = [output_dir filesep 'Gsegs' filesep];
 
 duration = GH.bins * GH.TR;
 fprintf('Duration of model: %d seconds. \n', duration);
@@ -98,9 +103,9 @@ end
 
 flags = eye( GH.bins, GH.bins );	% --- our inset is a (n,n) diagonal
 
-x = isfolder( 'Gsegs' );
-if ( x ~= 1 )  % --- the directory does not exist
-    mkdir Gsegs;
+x = isfolder(fullfile(output_dir, 'Gsegs'));
+if (x ~= 1)
+    mkdir(fullfile(output_dir, 'Gsegs'));   % ← was mkdir Gsegs
 end
 
 gsWidth = GH.bins * GH.conditions;
@@ -384,7 +389,7 @@ end
 
 Gheader = GH;
 %save Gheader Gheader
-save('Gheader.mat', "Gheader", "timingTable");
+save(fullfile(output_dir, 'Gheader.mat'), "Gheader", "timingTable");
 
 dt = date;
 crt = 'created partitioned G matrix' ;
@@ -419,8 +424,8 @@ end
       end
     end
 
-    p = [pwd() filesep];
-    eval( [ 'save( ''' p 'Gheader.mat'', ''Gheader'', ''-append'');' ] );
+    p = [output_dir filesep];   % ← was pwd()
+    eval(['save(''' p 'Gheader.mat'', ''Gheader'', ''-append'');']);
 	 
     Zheader.Model = who_stats( p, 'Gheader.mat', 'Gheader' );
     Zheader.Model.hdr_exists = Zheader.Model.mat_exists;

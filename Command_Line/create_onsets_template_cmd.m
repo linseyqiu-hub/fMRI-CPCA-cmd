@@ -1,24 +1,30 @@
-function create_onsets_template_cmd(base_dir,GH,timing)
+function create_onsets_template_cmd(base_dir, GH, timing, output_dir)
 % create timing onsets template, 'timing_onsets_template.txt'
 
 %
+% resolve output_dir
+if nargin < 4 || isempty(output_dir)
+    output_dir = base_dir;
+end
+
 cd(base_dir);
 
 % check the exiting of Z matrix
-if exist([base_dir filesep 'ZInfo.mat'], 'file') ~= 2
+if exist(fullfile(output_dir, 'ZInfo.mat'), 'file') ~= 2
     disp('List or Zinfo file does not exist');
     return
 end
-fullpath = [base_dir filesep 'ZInfo.mat'];
-eval( [ 'load( ''' fullpath ''', ''Zheader'' ,''scan_information''); '] );
 
+fullpath = fullfile(output_dir, 'ZInfo.mat');
+eval(['load(''' fullpath ''', ''Zheader'', ''scan_information'');']);
 
 % --------------------------------------------------
 % --- create the template with the onsets values inserted
 % --------------------------------------------------
 comment = '% ------------------------------------------------------';
 
-fullpath = [base_dir filesep 'timing_onsets_template.txt'];
+% timing_onsets_template.txt goes to output_dir
+fullpath = fullfile(output_dir, 'timing_onsets_template.txt');
 GH.conditions = size(GH.condition_name, 2 ); %Number of conditions
 fid = fopen( fullpath, 'w' );
 

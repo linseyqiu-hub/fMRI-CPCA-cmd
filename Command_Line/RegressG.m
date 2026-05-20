@@ -1,26 +1,30 @@
-function RegressG(base_dir, model)
-
+function RegressG(base_dir, model, output_dir)
+% resolve output_dir
+if nargin < 3 || isempty(output_dir)
+    output_dir = base_dir;
+end
 % base_dir = '/Users/wsu/example_data_Multiple_Groups_Subjects_Runs';
 if strcmp( model, 'G' )==0
     disp( 'only G model is supported.' );
     return
 end
-
+cd(output_dir);
 % check the exiting of Z matrix
-if exist([base_dir filesep 'ZInfo.mat'], 'file') ~= 2
+if exist(fullfile(output_dir, 'ZInfo.mat'), 'file') ~= 2
     disp('ZInfo.mat does not exist!');
     return
 end
-fullpath = [base_dir filesep 'ZInfo.mat'];
-eval( [ 'load( ''' fullpath ''', ''Zheader'' ,''scan_information''); '] );
+fullpath = fullfile(output_dir, 'ZInfo.mat');
+eval(['load(''' fullpath ''', ''Zheader'', ''scan_information'');']);
 
 % check the exiting of G matrix
 if ~isempty(Zheader.Model.path)
-    load( Zheader.Model.path,'Gheader' );
+    load(Zheader.Model.path, 'Gheader');
 else
     disp('Gheader.mat does not exist!');
     return
 end
+
 
 log_results=1;
 mkdir log;

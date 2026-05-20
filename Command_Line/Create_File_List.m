@@ -68,7 +68,7 @@ if not(isfolder(output_dir))
     end
 end
 
-cd(subject_dir);
+cd(output_dir);
 % clean up the folder
 disp('clean up the folder, all processed data will be removed!')
 if exist('ZInfo.mat', 'file') >0 
