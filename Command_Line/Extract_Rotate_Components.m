@@ -1,9 +1,9 @@
-function Extract_Rotate_Components(base_dir, numcomps, EorR, model, rot_method)
+function Extract_Rotate_Components(base_dir, numcomps, EorR, model, output_dir, rot_method)
 %% EorR: 'E' for extraction, 'R' for rotation
 % supported roation methods: varimax, promax, hrfmax (need
 % shapes.mat),orthomax, quartimax, equimax, hrf-procrustes and procrustes
-
-if nargin < 5,  rot_method = [];  end
+if nargin < 5,  output_dir = base_dir;  end
+if nargin < 6,  rot_method = [];  end
 
 if strcmp( model, 'G' )==0
     disp( 'only G model is supported.' );
@@ -16,11 +16,11 @@ if strcmp( EorR, 'E' )==0 && strcmp( EorR, 'R' )==0
 end
 
 % check the exiting of Z matrix
-if exist([base_dir filesep 'ZInfo.mat'], 'file') ~= 2
+if exist([output_dir filesep 'ZInfo.mat'], 'file') ~= 2
     disp('ZInfo.mat does not exist!');
     return
 end
-fullpath = [base_dir filesep 'ZInfo.mat'];
+fullpath = [output_dir filesep 'ZInfo.mat'];
 eval( [ 'load( ''' fullpath ''', ''Zheader'' ,''scan_information''); '] );
 
 % check the exiting of G matrix

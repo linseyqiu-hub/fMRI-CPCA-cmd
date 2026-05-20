@@ -54,9 +54,15 @@ save_state(STATE_FILE, state);
  
 % ── Add CPCA toolbox to path ──────────────────────────────
 addpath(genpath(config.cpcaDIR));
+% resolve output directory
+if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
+       outputDIR = config.outputDIR;
+   else
+       outputDIR = config.baseDIR;
+end
  
 try
-   cleanup_stage3(config.baseDIR);
+   cleanup_stage3(outputDIR);
 
 % Loop over each solution
 for s = 1:length(config.solutions)
@@ -66,8 +72,8 @@ for s = 1:length(config.solutions)
 
     % Step 1: Extract components
     fprintf('\n1. Extracting components...\n');
-    cd(config.baseDIR);
-    Extract_Rotate_Components(config.baseDIR, sol.num_components, 'E', 'G');
+    cd(outputDIR);
+    Extract_Rotate_Components(config.baseDIR, sol.num_components, 'E', 'G',outputDIR);
     cd(config.cpcaDIR);
     fprintf('   Completed: %d components extracted.\n', sol.num_components);
 
@@ -75,8 +81,8 @@ for s = 1:length(config.solutions)
     if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method)
         fprintf('\n2. Rotating components using %s...\n', sol.rotation_method);
         rot_method = {sol.rotation_method};
-        cd(config.baseDIR);
-        Extract_Rotate_Components(config.baseDIR, sol.num_components, 'R', 'G', rot_method);
+        cd(outputDIR);
+        Extract_Rotate_Components(config.baseDIR, sol.num_components, 'R', 'G', outputDIR, rot_method);
         cd(config.cpcaDIR);
         fprintf('   Completed: Components rotated.\n');
     else
