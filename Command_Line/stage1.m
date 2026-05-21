@@ -52,14 +52,13 @@ try
     addpath(genpath(config.cpcaDIR));
     % Step 1: Create scan list
     fprintf('\n1. Creating scan list...\n');
-    cd(config.baseDIR);
     % resolve output directory
     if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
         outputDIR = config.outputDIR;
     else
         outputDIR = config.baseDIR;
     end
-
+    cd(outputDIR);
 % Step 1: Create scan list
     fprintf('\n1. Creating scan list...\n');
     Create_File_List(config.baseDIR, config.filewildcard, outputDIR);

@@ -151,22 +151,19 @@ if ( spm_existfile(x) > 0 )
     scan_information.mask = msk;
     scan_information.mask.file = p.Results.maskName;
 
-    if ~isRegistered(scan_information.mask)
+    if ~ isRegistered( scan_information.mask )
         mask_reg2_MNI(scan_information);
-    
-        % cpca_read_vol always looks in baseDIR internally
-        % copy registered_mask to baseDIR so it can find it
-        copyfile(fullfile(output_dir, 'registered_mask.img'), fullfile(base_dir, 'registered_mask.img'));
-        copyfile(fullfile(output_dir, 'registered_mask.hdr'), fullfile(base_dir, 'registered_mask.hdr'));
-    
-        msk = cpca_read_vol(fullfile(base_dir, 'registered_mask.img'));
-    
-        % clean up copied files from baseDIR
-        delete(fullfile(base_dir, 'registered_mask.img'));
-        delete(fullfile(base_dir, 'registered_mask.hdr'));
-    
-        msk.ind = find(msk.image);
-        if size(msk.ind, 2) > 1 && size(msk.ind, 1) == 1
+        % cpca_read_vol uses scan_information.BaseDir internally
+        % temporarily point it to output_dir to read registered_mask.img
+        original_BaseDir = scan_information.BaseDir;
+        scan_information.BaseDir = output_dir;
+
+        msk = cpca_read_vol( fullfile(base_dir, 'registered_mask.img') );
+         % restore BaseDir
+        scan_information.BaseDir = original_BaseDir;
+
+        msk.ind = find( msk.image);
+        if size( msk.ind, 2 ) > 1 && size( msk.ind, 1 ) == 1
             msk.ind = msk.ind';
         end
         scan_information.mask = msk;
