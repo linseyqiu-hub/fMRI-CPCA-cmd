@@ -87,6 +87,19 @@ try
             'userCovariants', config.userCovariants, ...
             'output_dir',     outputDIR);
     end
+    if ~strcmp(outputDIR, config.baseDIR)
+        mask_img = fullfile(config.baseDIR, 'mask_used.img');
+        mask_hdr = fullfile(config.baseDIR, 'mask_used.hdr');
+    
+        if exist(mask_img, 'file')
+            copyfile(mask_img, fullfile(outputDIR, 'mask_used.img'));
+            delete(mask_img);
+        end
+        if exist(mask_hdr, 'file')
+            copyfile(mask_hdr, fullfile(outputDIR, 'mask_used.hdr'));
+            delete(mask_hdr);
+        end
+    end
     fprintf('   Completed: Z matrix normalized.\n');
  
     % Step 2: Initialize G header

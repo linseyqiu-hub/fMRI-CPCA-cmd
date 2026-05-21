@@ -79,7 +79,20 @@ try
             'maskName', config.maskName, ...
             'output_dir', outputDIR);
     end
-cd(config.cpcaDIR);
+    if ~strcmp(outputDIR, config.baseDIR)
+        mv_mat = fullfile(config.baseDIR, 'mask_verification.mat');
+        mv_txt = fullfile(config.baseDIR, 'mask_verification.txt');
+    
+        if exist(mv_mat, 'file')
+            copyfile(mv_mat, fullfile(outputDIR, 'mask_verification.mat'));
+            delete(mv_mat);
+        end
+        if exist(mv_txt, 'file')
+            copyfile(mv_txt, fullfile(outputDIR, 'mask_verification.txt'));
+            delete(mv_txt);
+        end
+    end
+    cd(config.cpcaDIR);
     fprintf('   Completed: ZInfo.mat and mask created.\n');
  
     % ── Release lock — mark done ───────────────────────────
