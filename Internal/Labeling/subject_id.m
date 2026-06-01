@@ -6,3 +6,4 @@ global scan_information
     sid = char(scan_information.SubjectID( sno ));
   end;
 
+1

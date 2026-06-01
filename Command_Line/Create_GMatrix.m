@@ -351,7 +351,7 @@ if ( fid )
             GH.illformed = 1;
             GH.subjects = [GH.subjects SubjectNo];
 
-            sr = sprintf( 'Subject %3d: id: %s  rank: %d ', SubjectNo, subject_id( SubjectNo), this_rank );
+            sr = sprintf( 'Subject %3d: id: %s  rank: %d ', SubjectNo, subject_id_cmd( SubjectNo, scan_information), this_rank );
             subRank = [subRank; {sr}];
 
         end
