@@ -21,6 +21,7 @@ This repository contains a MATLAB script for performing Constrained Principal Co
 * `stage3.m` - Component extraction and rotation
 * `stage4.m` - Component flipping
 * `unlock.m` - Utility for resetting locked stages after interrupted runs
+* `mask_report.m` - Standalone utility for generating a mask reduction report
 
 ## Quick Start
 
@@ -96,6 +97,93 @@ If MATLAB crashes mid-stage and the stage remains locked, run:
 
 This utility will display which stages are currently locked and allow them to be reset before rerunning.
 
+## Mask Report
+
+After Stage 1 completes, you can generate a mask reduction report to inspect how the common mask shrinks as each subject-run mask is intersected:
+
+```matlab
+>> mask_report
+```
+
+`mask_report.m` is a standalone command that lives in the Command_Line. It reads `mask_stats.mat` from `config.outputDIR` and produces two output files in that directory:
+
+* `mask_report.csv` — SPSS-importable table
+* `mask_report.txt` — human-readable version
+
+The report table has the following columns:
+
+| Column | Description |
+| --- | --- |
+| Subject_Run | Subject/run label |
+| Mask_Size | Number of valid voxels for this subject-run |
+| Step_Reduction (voxels) | Voxels lost at this step of accumulation |
+| Step_Reduction% | Percentage lost at this step |
+| Cumul_Reduction (voxels) | Total voxels lost since the reference mask |
+| Cumul_Reduction% | Total percentage lost since the reference mask |
+
+Row and column totals are included.
+
+## Merged Analysis
+
+The pipeline supports analysing two datasets together (e.g. VISION + PAIN) by treating them as a single set of subjects with different run counts and condition structures. No code changes are required — only config and data preparation.
+
+### How it works
+
+The pipeline already handles variable runs per subject and variable conditions per subject-run natively:
+
+* Subjects with fewer runs simply have empty run slots — those are skipped automatically
+* `import_onsets_list_cmd` uses pattern matching to mark which conditions are encoded for each subject-run — subjects from one dataset will have their own conditions encoded and the other dataset's conditions left as not-encoded
+* `Create_GMatrix` builds per-subject G blocks sized to that subject's actual encoded condition count
+* `compile_CC_array_cmd` assembles CC with variable-width blocks per subject
+
+The only hard requirement is that all scans across both datasets must be registered to the **same MNI voxel grid** (same dimensions, same voxel size) before running the pipeline. The mask accumulation step performs element-wise intersection — this is only valid if all mask vectors have identical length.
+
+### Config setup for merged analysis
+
+Set `config.num_subjects`, `config.num_runs`, and `config.num_conditions` to the totals/maxima across both datasets. Set `config.condition_names` to the full union of conditions from both datasets.
+
+```matlab
+% Merged dataset: VISION (3 subjects, 1 run, 4 conditions)
+%               + PAIN   (4 subjects, 9 runs, up to 6 conditions per run)
+
+config.baseDIR        = 'D:\fMRI-CPCA\Example_Data_2MergedTasks';
+config.outputDIR      = 'D:\fMRI-CPCA\mergedOutPut';
+config.filewildcard   = '*nii';
+
+% Total subjects across both datasets
+config.num_subjects   = 7;   % 3 VISION + 4 PAIN
+
+% Max runs across both datasets
+config.num_runs       = 9;   % PAIN has up to 9 runs; VISION has 1
+
+% Total unique conditions across both datasets
+config.num_conditions = 10;
+
+% Full union of condition names — order must match timing_onsets_merged.txt
+config.condition_names = { ...
+    '4Letters_NoDelay', ...
+    '4Letters_2Delay', ...
+    '6Letters_NoDelay', ...
+    '6Letters_2Delay', ...
+    'pain_standard_high', ...
+    'pain_standard_low', ...
+    'pain_reg-up_high', ...
+    'pain_reg-up_low', ...
+    'pain_reg-down_high', ...
+    'pain_reg-down_low' ...
+};
+
+config.bins         = 8;
+config.TR           = 3;
+config.inScans      = 1;
+config.normalize_G  = 1;
+```
+
+### Timing onsets file
+
+Prepare a single `timing_onsets_merged.txt` containing variable entries for all subjects and runs from both datasets. `import_onsets_list_cmd` matches entries by pattern — VISION subjects will have their 4 conditions matched and PAIN conditions left as not-encoded, and vice versa. No code change is needed; just ensure the variable names in the file match the naming convention the pipeline expects.
+
+
 ## Configuration
 
 Edit `configs.m` to set parameters for your analysis. Below is an explanation of key parameters:
@@ -104,14 +192,14 @@ Edit `configs.m` to set parameters for your analysis. Below is an explanation of
 
 * `config.cpcaDIR` - Directory of fMRI-CPCA library (typically `Z:\People\[Your Name]\cpca_1.2.2.23`)
 * `config.baseDIR` - Directory containing your data (typically `Z:\People\[Your Name]\cpca_1.2.2.23\TestData\[Your Data]`)
-* `config.filewildcard` - Pattern to select scan files (e.g., 'swa*nii', 'fsn*img')
+* `config.outputDIR` - Directory where all pipeline output will be written. If empty or absent, output goes to `baseDIR` (legacy behaviour)
+* `config.filewildcard` - Pattern to select scan files (e.g., `'swa*nii'`, `'fsn*img'`)
 
 ### Mask Parameters
 
-* `config.maskName` - Name of the mask file (default: 'mask.img')
+* `config.maskName` - Name of the mask file (default: `'mask.img'`)
 * `config.createMask` - Whether to create a new mask (1) or use existing (0)
 * `config.maskMethod` - Mask creation method:
-
   * 1: Global mean threshold
   * 2: Harvard Oxford MNI coordinates
 
@@ -133,15 +221,31 @@ Edit `configs.m` to set parameters for your analysis. Below is an explanation of
 
 ### Timing Parameters
 
-* `config.num_subjects` - Number of subjects
-* `config.num_runs` - Number of runs per subject
-* `config.num_conditions` - Number of conditions
+* `config.num_subjects` - Total number of subjects (across all datasets for merged analysis)
+* `config.num_runs` - Maximum number of runs per subject (across all datasets for merged analysis)
+* `config.num_conditions` - Total number of unique conditions (across all datasets for merged analysis)
 
 ### Component Extraction Parameters
 
-* `config.num_components` - Number of components to extract
-* `config.rotation_method` - Rotation method (e.g., 'varimax', 'promax')
-* `config.components_to_flip` - Array of component indices to flip (e.g., `[2]`)
+Multiple solutions are supported. Each solution specifies an independent extraction:
+
+```matlab
+config.solutions(1).num_components = 2;
+config.solutions(1).rotation_method = 'varimax';       % optional — omit for no rotation
+config.solutions(1).components_to_flip.unrotated = [1];
+config.solutions(1).components_to_flip.rotated   = [1 2];
+
+config.solutions(2).num_components = 3;
+config.solutions(2).rotation_method = 'varimax';
+config.solutions(2).components_to_flip.unrotated = [];
+config.solutions(2).components_to_flip.rotated   = [2];
+```
+
+Rules:
+* `rotation_method` is optional. If omitted, no rotation is applied. If present, must be a non-empty valid string.
+* `components_to_flip` has two keys only: `unrotated` and `rotated`.
+* Specifying `components_to_flip.rotated` without a `rotation_method` is an error.
+* Duplicate flip indices within the same key are an error.
 
 ## Analysis Steps
 
@@ -186,6 +290,8 @@ config.normalize_G = 1;
 config.num_subjects = 6;
 config.num_runs = 1;
 config.num_conditions = 2;
-config.num_components = 3;
-config.rotation_method = 'varimax';
+config.solutions(1).num_components = 3;
+config.solutions(1).rotation_method = 'varimax';
+config.solutions(1).components_to_flip.unrotated = [];
+config.solutions(1).components_to_flip.rotated   = [2];
 ```
