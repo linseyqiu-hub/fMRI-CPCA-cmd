@@ -143,7 +143,7 @@ try
     % Step 4: Create timing onsets template
     fprintf('\n4. Creating timing onsets template...\n');
     cd(outputDIR);
-    create_onsets_template_cmd(config.baseDIR, GH, timing, outputDIR, config.subject_conditions);
+    create_onsets_template_cmd(config.baseDIR, GH, timing, outputDIR);
     cd(config.cpcaDIR);
     fprintf('   Completed: timing_onsets_template.txt created.\n');
  

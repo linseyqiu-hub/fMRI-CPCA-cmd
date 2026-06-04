@@ -58,7 +58,7 @@ eval(['load(''' fullpath ''', ''Zheader'', ''scan_information'');']);
 
 
 Zheader.conditions.Names = GH.condition_name;
-GH.conditions = size(GH.condition_name, 2 ); %Number of conditions
+GH.conditions = numel(GH.condition_name);
 GH.subject_encoded = zeros( 1, Zheader.num_subjects ) * GH.conditions;
 
 [txt, onsetsfile, Zheader] = import_onsets_list_cmd(base_dir, filename, GH.model_type, Zheader, scan_information, output_dir);

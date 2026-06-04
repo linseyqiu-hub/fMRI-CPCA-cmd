@@ -31,17 +31,39 @@ config.userCovariants = '';    % Filename for user-defined covariants (leave emp
 config.meanCenter = 1;         % 1-On, 0-Off
 config.standardize = 1;        % 1-On, 0-Off
 
-% G matrix parameters
-config.condition_names = {'4Letters_NoDelay', '4Letters_2Delay', '6Letters_NoDelay', '6Letters_2Delay', 'pain_standard_high', 'pain_standard_low', 'pain_reg-up_high', 'pain_reg-up_low', 'pain_reg-down_high', 'pain_reg-down_low'};  % List of condition names
-config.bins = 8;        % Number of time bins
-config.TR = 3;          % Timing rate
-config.inScans = 1;     % 1 for Scans timing, 0 for seconds
-config.normalize_G = 1; % 1 to normalize G matrix, 0 to not normalize
+
 
 % Timing parameters
 config.num_subjects = 7;    % Number of subjects
 config.num_runs = 9;        % Number of runs per subject
 config.num_conditions = 10;  % Number of conditions
+% G matrix parameters
+config.condition_names = {
+    '4Letters_NoDelay',    % index 1
+    '4Letters_2Delay',     % index 2
+    '6Letters_NoDelay',    % index 3
+    '6Letters_2Delay',     % index 4
+    'pain_standard_high',  % index 5
+    'pain_standard_low',   % index 6
+    'pain_reg-up_high',    % index 7
+    'pain_reg-up_low',     % index 8
+    'pain_reg-down_high',  % index 9
+    'pain_reg-down_low'    % index 10
+};
+config.bins = 8;        % Number of time bins
+config.TR = 3;          % Timing rate
+config.inScans = 1;     % 1 for Scans timing, 0 for seconds
+config.normalize_G = 1; % 1 to normalize G matrix, 0 to not normalize
+
+% per subject: one row per run, listing condition indices for that run
+config.subject_conditions{1} = {[1 2 3 4]};              % VISION_V01: 1 run, conds 1-4
+config.subject_conditions{2} = {[1 2 3 4]};              % VISION_V02: 1 run, conds 1-4
+config.subject_conditions{3} = {[1 2 3 4]};              % VISION_V03: 1 run, conds 1-4
+config.subject_conditions{4} = {[5 6],[5 6],[7 8],[5 6],[5 6],[5 6],[9 10],[5 6],[5 6]};  % sub-01: 9 runs
+config.subject_conditions{5} = {[5 6],[5 6],[9 10],[5 6],[5 6],[5 6],[7 8],[5 6],[5 6]};  % sub-02
+config.subject_conditions{6} = {[5 6],[5 6],[9 10],[5 6],[5 6],[5 6],[7 8],[5 6],[5 6]};  % sub-03
+config.subject_conditions{7} = {[5 6],[5 6],[9 10],[5 6],[5 6],[5 6],[7 8],[5 6],[5 6]};  % sub-04
+
 
 % Component extraction parameters
 config.solutions(1).num_components = 2;

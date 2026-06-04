@@ -5,6 +5,7 @@ function sp = condition_start_columns_cmd(Zheader, nconds, nbins )
   p = [];
 
   for s=1:Zheader.num_subjects
+    fprintf('Subject %d: condition length = %d\n', s, length(Zheader.conditions.encoded(s).condition));
     p = [p; Zheader.conditions.encoded(s).condition];
 
     y = find( Zheader.conditions.encoded(s).condition == 1 );
@@ -17,6 +18,7 @@ function sp = condition_start_columns_cmd(Zheader, nconds, nbins )
         x(y(c)) = (c-1)*nbins; 
       end
     end
+    fprintf('Subject %d: x length = %d, sp rows = %d\n', s, length(x), size(sp,2));
     sp = [sp; x ];
   end
 

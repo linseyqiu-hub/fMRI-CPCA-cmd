@@ -123,7 +123,7 @@ end
 function validate_config(config)
     % Validate essential parameters
     required_fields = {'cpcaDIR', 'baseDIR', 'filewildcard', 'condition_names', 'bins', 'TR', 'inScans', 'normalize_G', ...
-                     'num_subjects', 'num_runs', 'num_conditions', 'solutions'};
+                     'num_subjects', 'num_runs', 'num_conditions', 'solutions', 'subject_conditions'};
     
     for i = 1:length(required_fields)
         if ~isfield(config, required_fields{i})
@@ -148,6 +148,33 @@ function validate_config(config)
         end
     end
 
+    % Validate subject_conditions
+    if length(config.subject_conditions) ~= config.num_subjects
+        error('subject_conditions has %d entries but num_subjects = %d', ...
+            length(config.subject_conditions), config.num_subjects);
+    end
+
+    for s = 1:config.num_subjects
+        sub_conds = config.subject_conditions{s};
+        if length(sub_conds) < 1 || length(sub_conds) > config.num_runs
+            error('subject_conditions{%d} has %d runs but num_runs = %d (must be between 1 and num_runs)', ...
+                s, length(sub_conds), config.num_runs);
+        end
+        for r = 1:length(sub_conds)
+            indices = sub_conds{r};
+            if ~isnumeric(indices)
+                error('subject_conditions{%d}{%d} must be a numeric array', s, r);
+            end
+            if any(indices < 1) || any(indices > config.num_conditions)
+                error('subject_conditions{%d}{%d} contains index out of range 1:%d', ...
+                    s, r, config.num_conditions);
+            end
+            if length(unique(indices)) ~= length(indices)
+                error('subject_conditions{%d}{%d} contains duplicate condition indices', s, r);
+            end
+        end
+    end
+
     % Validate solutions
     if isempty(config.solutions)
         error('config.solutions must contain at least one solution.');
@@ -167,8 +194,6 @@ function validate_config(config)
         end
 
         % --- rotation_method (optional) ---
-        % If field is absent: no rotation (valid)
-        % If field is present: must be non-empty and a valid method
         if isfield(sol, 'rotation_method')
             if ~ischar(sol.rotation_method) || isempty(sol.rotation_method)
                 error('Solution %d: rotation_method is specified but empty. Either remove the field entirely or set a valid method: %s', ...
@@ -186,7 +211,6 @@ function validate_config(config)
                 error('Solution %d: components_to_flip must be a struct with fields .unrotated and/or .rotated', s);
             end
 
-            % Only allow 'unrotated' and 'rotated' as valid keys
             flip_fields = fieldnames(sol.components_to_flip);
             valid_flip_keys = {'unrotated', 'rotated'};
             for f = 1:length(flip_fields)
@@ -196,22 +220,19 @@ function validate_config(config)
                 end
             end
 
-            % Validate unrotated flip indices
             if isfield(sol.components_to_flip, 'unrotated')
                 validate_flip_indices(sol.components_to_flip.unrotated, sol.num_components, s, 'unrotated');
             end
 
-            % Validate rotated flip indices
             if isfield(sol.components_to_flip, 'rotated')
                 if ~isfield(sol, 'rotation_method')
-                    error('Solution %d: components_to_flip.rotated is specified but rotation_method is not defined. Cannot flip rotated components without a rotation method.', s);
+                    error('Solution %d: components_to_flip.rotated is specified but rotation_method is not defined.', s);
                 end
                 validate_flip_indices(sol.components_to_flip.rotated, sol.num_components, s, 'rotated');
             end
         end
     end
 end
-
 
 function validate_flip_indices(indices, num_components, sol_idx, label)
     if ~isnumeric(indices)

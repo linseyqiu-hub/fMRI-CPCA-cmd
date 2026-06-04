@@ -28,7 +28,7 @@ end
   Zheader.conditions.encoded = [];
   Zheader.conditions.allEncoded = 0;
   Zheader.conditions.nonEncoded = 0;
-  numconds = size(Zheader.conditions.Names,2);
+  numconds = numel(Zheader.conditions.Names);
 
   if ~isempty( fullpath )
 
@@ -46,7 +46,7 @@ end
     
     for SubjectNo = 1:Zheader.num_subjects 
       %s = struct( 'Runs', zeros(1, Zheader.num_runs ) ) ;
-      z.condition = zeros( 1, size( Zheader.conditions.Names,2) );
+      z.condition = zeros( 1, numel( Zheader.conditions.Names) );
       for RunNo = 1:Zheader.num_runs 
         if iscellstr( scan_information.SubjDir( SubjectNo, RunNo ) ) 
           vec=[];  
@@ -57,6 +57,7 @@ end
                 
                 % Try with both patterns: subj_id_run_id_condition and subj_id_condition
                 pattern1 = append(subj_id, '_', run_id, '_', Zheader.conditions.Names{condno});
+                fprintf('pattern1: "%s"\n', pattern1);  % ADD THIS
                 pattern2 = append(subj_id, '_', Zheader.conditions.Names{condno});
                 
                 % Check for either pattern in the file
@@ -139,7 +140,7 @@ end
 
             run_id = determine_runID_cmd( SubjectNo, RunNo, scan_information );
 
-            for cond = 1:size( Zheader.conditions.subject(SubjectNo).Run(RunNo).conditions, 2) 
+            for cond = 1:numel( Zheader.conditions.subject(SubjectNo).Run(RunNo).conditions ) 
               cond_id = char( Zheader.conditions.Names( Zheader.conditions.subject(SubjectNo).Run(RunNo).conditions( cond )  ) );
 
               var_id = [s_id '_' run_id '_' cond_id ];
