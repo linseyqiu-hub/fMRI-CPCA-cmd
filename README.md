@@ -125,14 +125,12 @@ Row and column totals are included.
 
 ## Merged Analysis
 
-The pipeline supports analysing two datasets together (e.g. VISION + PAIN) by treating them as a single set of subjects with different run counts and condition structures. No code changes are required — only config and data preparation.
+The pipeline supports analysing two datasets together (e.g. VISION + PAIN) by treating them as a single set of subjects with different run counts and condition structures. No code changes are required — only config and timing file preparation.
 
 ### How it works
 
-The pipeline already handles variable runs per subject and variable conditions per subject-run natively:
-
-* Subjects with fewer runs simply have empty run slots — those are skipped automatically
-* `import_onsets_list_cmd` uses pattern matching to mark which conditions are encoded for each subject-run — subjects from one dataset will have their own conditions encoded and the other dataset's conditions left as not-encoded
+* Subjects with fewer runs than `num_runs` simply have their missing run slots skipped automatically
+* `subject_conditions` tells the pipeline exactly which conditions belong to each subject per run — VISION subjects list only their 4 conditions, PAIN subjects list only their pain conditions
 * `Create_GMatrix` builds per-subject G blocks sized to that subject's actual encoded condition count
 * `compile_CC_array_cmd` assembles CC with variable-width blocks per subject
 
@@ -140,48 +138,39 @@ The only hard requirement is that all scans across both datasets must be registe
 
 ### Config setup for merged analysis
 
-Set `config.num_subjects`, `config.num_runs`, and `config.num_conditions` to the totals/maxima across both datasets. Set `config.condition_names` to the full union of conditions from both datasets.
-
 ```matlab
-% Merged dataset: VISION (3 subjects, 1 run, 4 conditions)
-%               + PAIN   (4 subjects, 9 runs, up to 6 conditions per run)
+config.num_subjects   = 7;    % 3 VISION + 4 PAIN
+config.num_runs       = 9;    % max across both datasets
+config.num_conditions = 10;   % total unique conditions across both datasets
 
-config.baseDIR        = 'D:\fMRI-CPCA\Example_Data_2MergedTasks';
-config.outputDIR      = 'D:\fMRI-CPCA\mergedOutPut';
-config.filewildcard   = '*nii';
-
-% Total subjects across both datasets
-config.num_subjects   = 7;   % 3 VISION + 4 PAIN
-
-% Max runs across both datasets
-config.num_runs       = 9;   % PAIN has up to 9 runs; VISION has 1
-
-% Total unique conditions across both datasets
-config.num_conditions = 10;
-
-% Full union of condition names — order must match timing_onsets_merged.txt
-config.condition_names = { ...
-    '4Letters_NoDelay', ...
-    '4Letters_2Delay', ...
-    '6Letters_NoDelay', ...
-    '6Letters_2Delay', ...
-    'pain_standard_high', ...
-    'pain_standard_low', ...
-    'pain_reg-up_high', ...
-    'pain_reg-up_low', ...
-    'pain_reg-down_high', ...
-    'pain_reg-down_low' ...
+config.condition_names = {
+    '4Letters_NoDelay',   % index 1
+    '4Letters_2Delay',    % index 2
+    '6Letters_NoDelay',   % index 3
+    '6Letters_2Delay',    % index 4
+    'pain_standard_high', % index 5
+    'pain_standard_low',  % index 6
+    'pain_reg-up_high',   % index 7
+    'pain_reg-up_low',    % index 8
+    'pain_reg-down_high', % index 9
+    'pain_reg-down_low'   % index 10
 };
 
-config.bins         = 8;
-config.TR           = 3;
-config.inScans      = 1;
-config.normalize_G  = 1;
+% VISION subjects: 1 run, conditions 1-4
+config.subject_conditions{1} = {[1 2 3 4]};
+config.subject_conditions{2} = {[1 2 3 4]};
+config.subject_conditions{3} = {[1 2 3 4]};
+
+% PAIN subjects: 9 runs, 2 conditions per run (varies by run)
+config.subject_conditions{4} = {[5 6],[5 6],[7 8],[5 6],[5 6],[5 6],[9 10],[5 6],[5 6]};
+config.subject_conditions{5} = {[5 6],[5 6],[9 10],[5 6],[5 6],[5 6],[7 8],[5 6],[5 6]};
+config.subject_conditions{6} = {[5 6],[5 6],[9 10],[5 6],[5 6],[5 6],[7 8],[5 6],[5 6]};
+config.subject_conditions{7} = {[5 6],[5 6],[9 10],[5 6],[5 6],[5 6],[7 8],[5 6],[5 6]};
 ```
 
 ### Timing onsets file
 
-Prepare a single `timing_onsets_merged.txt` containing variable entries for all subjects and runs from both datasets. `import_onsets_list_cmd` matches entries by pattern — VISION subjects will have their 4 conditions matched and PAIN conditions left as not-encoded, and vice versa. No code change is needed; just ensure the variable names in the file match the naming convention the pipeline expects.
+Prepare a single `timing_onsets.txt` containing entries for all subjects from both datasets. Variable names must follow the format `subjectID_runID_conditionName` where `subjectID` and `runID` match the folder names on disk exactly. Only list entries for conditions that actually occurred — missing conditions do not need to be listed.
 
 
 ## Configuration
@@ -213,7 +202,7 @@ Edit `configs.m` to set parameters for your analysis. Below is an explanation of
 
 ### G-Matrix Parameters
 
-* `config.condition_names` - Array of condition names (e.g., `{'HIGH', 'LOW'}`)
+* `config.condition_names` - Cell array of all unique condition names across all subjects. Order determines the index used in `subject_conditions`.
 * `config.bins` - Number of time bins
 * `config.TR` - Timing rate
 * `config.inScans` - Timing in Scans (1) or seconds (0)
@@ -221,10 +210,27 @@ Edit `configs.m` to set parameters for your analysis. Below is an explanation of
 
 ### Timing Parameters
 
-* `config.num_subjects` - Total number of subjects (across all datasets for merged analysis)
-* `config.num_runs` - Maximum number of runs per subject (across all datasets for merged analysis)
-* `config.num_conditions` - Total number of unique conditions (across all datasets for merged analysis)
+* `config.num_subjects` - Total number of subjects
+* `config.num_runs` - Maximum number of runs across all subjects
+* `config.num_conditions` - Total number of unique conditions across all subjects
 
+### Subject Conditions
+
+* `config.subject_conditions` - Required. A cell array with one entry per subject. Each entry is a cell array with one entry per run that subject actually has. Each run entry is a numeric array of condition indices — referencing the position in `config.condition_names` — that occurred in that run.
+
+```matlab
+% Subject with 1 run, conditions 1-4:
+config.subject_conditions{1} = {[1 2 3 4]};
+
+% Subject with 9 runs, variable conditions per run:
+config.subject_conditions{4} = {[5 6],[5 6],[7 8],[5 6],[5 6],[5 6],[9 10],[5 6],[5 6]};
+```
+
+Rules:
+* Every subject must have at least 1 run entry and at most `num_runs` entries
+* Condition indices must be within `1:num_conditions`
+* Duplicate indices within the same run are an error
+* Subjects with fewer runs than `num_runs` simply list only the runs they have — missing runs are skipped automatically
 ### Component Extraction Parameters
 
 Multiple solutions are supported. Each solution specifies an independent extraction:
@@ -270,28 +276,101 @@ The legacy script performs the following steps:
 
 ## Example Configuration
 
+### Single Dataset
+
 ```matlab
-% Example configuration
 config = struct();
-config.baseDIR = 'Z:\Data\semantic_association_data';
-config.filewildcard = 'swa*nii';
-config.maskName = 'mask.img';
-config.createMask = 1;
-config.maskMethod = 1;
-config.linearRegress = 1;
+config.cpcaDIR        = 'Z:\People\MyName\cpca_1.2.2.23';
+config.baseDIR        = 'Z:\Data\my_study';
+config.outputDIR      = 'Z:\Data\my_study_output';
+config.filewildcard   = 'swa*nii';
+config.maskName       = 'mask.img';
+config.createMask     = 1;
+config.maskMethod     = 1;
+config.linearRegress  = 1;
 config.quadraticRegress = 1;
-config.meanCenter = 1;
-config.standardize = 1;
-config.condition_names = {'HIGH', 'LOW'};
-config.bins = 10;
-config.TR = 2;
-config.inScans = 1;
-config.normalize_G = 1;
-config.num_subjects = 6;
-config.num_runs = 1;
+config.movementRegress = 0;
+config.userCovariants = '';
+config.meanCenter     = 1;
+config.standardize    = 1;
+config.num_subjects   = 6;
+config.num_runs       = 2;
 config.num_conditions = 2;
+config.condition_names = {'HIGH', 'LOW'};
+config.bins           = 8;
+config.TR             = 2;
+config.inScans        = 1;
+config.normalize_G    = 1;
+
+% All subjects: 2 runs, both conditions in every run
+config.subject_conditions{1} = {[1 2], [1 2]};
+config.subject_conditions{2} = {[1 2], [1 2]};
+config.subject_conditions{3} = {[1 2], [1 2]};
+config.subject_conditions{4} = {[1 2], [1 2]};
+config.subject_conditions{5} = {[1 2], [1 2]};
+config.subject_conditions{6} = {[1 2], [1 2]};
+
 config.solutions(1).num_components = 3;
 config.solutions(1).rotation_method = 'varimax';
 config.solutions(1).components_to_flip.unrotated = [];
 config.solutions(1).components_to_flip.rotated   = [2];
+```
+
+### Merged Dataset (VISION + PAIN)
+
+```matlab
+config = struct();
+config.cpcaDIR        = 'D:\fMRI-CPCA\fMRI-CPCA-cmd';
+config.baseDIR        = 'D:\fMRI-CPCA\Example_Data_2MergedTasks';
+config.outputDIR      = 'D:\fMRI-CPCA\mergedOutPut';
+config.filewildcard   = '*nii';
+config.maskName       = 'mask.img';
+config.createMask     = 1;
+config.maskMethod     = 1;
+config.linearRegress  = 1;
+config.quadraticRegress = 1;
+config.movementRegress = 0;
+config.userCovariants = '';
+config.meanCenter     = 1;
+config.standardize    = 1;
+config.num_subjects   = 7;
+config.num_runs       = 9;
+config.num_conditions = 10;
+config.condition_names = {
+    '4Letters_NoDelay',   % index 1
+    '4Letters_2Delay',    % index 2
+    '6Letters_NoDelay',   % index 3
+    '6Letters_2Delay',    % index 4
+    'pain_standard_high', % index 5
+    'pain_standard_low',  % index 6
+    'pain_reg-up_high',   % index 7
+    'pain_reg-up_low',    % index 8
+    'pain_reg-down_high', % index 9
+    'pain_reg-down_low'   % index 10
+};
+config.bins           = 8;
+config.TR             = 3;
+config.inScans        = 1;
+config.normalize_G    = 1;
+
+% VISION subjects: 1 run, conditions 1-4
+config.subject_conditions{1} = {[1 2 3 4]};
+config.subject_conditions{2} = {[1 2 3 4]};
+config.subject_conditions{3} = {[1 2 3 4]};
+
+% PAIN subjects: 9 runs, 2 conditions per run (varies by run)
+config.subject_conditions{4} = {[5 6],[5 6],[7 8],[5 6],[5 6],[5 6],[9 10],[5 6],[5 6]};
+config.subject_conditions{5} = {[5 6],[5 6],[9 10],[5 6],[5 6],[5 6],[7 8],[5 6],[5 6]};
+config.subject_conditions{6} = {[5 6],[5 6],[9 10],[5 6],[5 6],[5 6],[7 8],[5 6],[5 6]};
+config.subject_conditions{7} = {[5 6],[5 6],[9 10],[5 6],[5 6],[5 6],[7 8],[5 6],[5 6]};
+
+config.solutions(1).num_components = 2;
+config.solutions(1).rotation_method = 'varimax';
+config.solutions(1).components_to_flip.unrotated = [1];
+config.solutions(1).components_to_flip.rotated   = [1 2];
+
+config.solutions(2).num_components = 3;
+config.solutions(2).rotation_method = 'varimax';
+config.solutions(2).components_to_flip.unrotated = [];
+config.solutions(2).components_to_flip.rotated   = [2];
 ```
