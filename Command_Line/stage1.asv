@@ -32,6 +32,8 @@ original_dir = pwd;
 % ── Validate config ───────────────────────────────────────
 validate_config(config);
  
+% ── Display parameters ────────────────────────────────────
+display_parameters(config);
 
 % ── Initialize fresh state ────────────────────────────────
 state = init_state();
@@ -63,11 +65,10 @@ try
     fprintf('   Completed: files.txt created.\n');
     cd(config.cpcaDIR);
 
-    % Step 2: Fill up config.m
+    % Step 2: 
     files_txt_path = fullfile(outputDIR, 'files.txt');
     config = generate_config(config, files_txt_path);
-    % ── Display parameters ────────────────────────────────────
-    display_parameters(config);
+ 
     % Step 3: Create Z-data matrix + mask
     fprintf('\n2. Creating mask and ZInfo...\n');
     if isfield(config, 'createMask') && config.createMask
@@ -124,74 +125,61 @@ end
 end
 
 function validate_config(config)
-    % Validate manually-filled config fields only.
-    % Auto-derived fields (num_subjects, num_runs, num_conditions,
-    % condition_names, subject_conditions) are NOT validated here —
-    % they are deterministically produced by generate_config and
-    % guaranteed correct if that function succeeds.
-
-    % ── Required manual fields ────────────────────────────────────────────
-    required_fields = { ...
-        'cpcaDIR', ...
-        'baseDIR', ...
-        'filewildcard', ...
-        'bins', ...
-        'TR', ...
-        'inScans', ...
-        'normalize_G', ...
-        'solutions' ...
-    };
-
+    % Validate essential parameters
+    required_fields = {'cpcaDIR', 'baseDIR', 'filewildcard', 'condition_names', 'bins', 'TR', 'inScans', 'normalize_G', ...
+                     'num_subjects', 'num_runs', 'num_conditions', 'solutions', 'subject_conditions'};
+    
     for i = 1:length(required_fields)
         if ~isfield(config, required_fields{i})
             error('Configuration missing required field: %s', required_fields{i});
         end
     end
-
-    % ── Path existence checks ─────────────────────────────────────────────
+    
+    % Check if cpca directory exists
     if ~exist(config.cpcaDIR, 'dir')
         error('CPCA directory does not exist: %s', config.cpcaDIR);
     end
-
+    
+    % Check if base directory exists
     if ~exist(config.baseDIR, 'dir')
         error('Base directory does not exist: %s', config.baseDIR);
     end
 
+    % Validate outputDIR only if specified
     if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
         if ~exist(config.outputDIR, 'dir')
             error('Output directory does not exist: %s', config.outputDIR);
         end
     end
 
-    % ── Scalar parameter checks ───────────────────────────────────────────
-    if ~isnumeric(config.bins) || config.bins < 1 || floor(config.bins) ~= config.bins
-        error('config.bins must be a positive integer, got: %g', config.bins);
+    % Validate subject_conditions
+    if length(config.subject_conditions) ~= config.num_subjects
+        error('subject_conditions has %d entries but num_subjects = %d', ...
+            length(config.subject_conditions), config.num_subjects);
     end
 
-    if ~isnumeric(config.TR) || config.TR <= 0
-        error('config.TR must be a positive number, got: %g', config.TR);
-    end
-
-    if ~ismember(config.inScans, [0 1])
-        error('config.inScans must be 0 or 1, got: %g', config.inScans);
-    end
-
-    if ~ismember(config.normalize_G, [0 1])
-        error('config.normalize_G must be 0 or 1, got: %g', config.normalize_G);
-    end
-
-    % ── Mask fields (conditional) ─────────────────────────────────────────
-    if ~isfield(config, 'maskName') || isempty(config.maskName)
-        error('config.maskName is required and must be non-empty.');
-    end
-
-    if isfield(config, 'createMask') && config.createMask
-        if ~isfield(config, 'maskMethod') || isempty(config.maskMethod)
-            error('config.maskMethod is required when config.createMask = 1.');
+    for s = 1:config.num_subjects
+        sub_conds = config.subject_conditions{s};
+        if length(sub_conds) < 1 || length(sub_conds) > config.num_runs
+            error('subject_conditions{%d} has %d runs but num_runs = %d (must be between 1 and num_runs)', ...
+                s, length(sub_conds), config.num_runs);
+        end
+        for r = 1:length(sub_conds)
+            indices = sub_conds{r};
+            if ~isnumeric(indices)
+                error('subject_conditions{%d}{%d} must be a numeric array', s, r);
+            end
+            if any(indices < 1) || any(indices > config.num_conditions)
+                error('subject_conditions{%d}{%d} contains index out of range 1:%d', ...
+                    s, r, config.num_conditions);
+            end
+            if length(unique(indices)) ~= length(indices)
+                error('subject_conditions{%d}{%d} contains duplicate condition indices', s, r);
+            end
         end
     end
 
-    % ── Solutions ─────────────────────────────────────────────────────────
+    % Validate solutions
     if isempty(config.solutions)
         error('config.solutions must contain at least one solution.');
     end
@@ -201,7 +189,7 @@ function validate_config(config)
     for s = 1:length(config.solutions)
         sol = config.solutions(s);
 
-        % num_components (required)
+        % --- num_components (required) ---
         if ~isfield(sol, 'num_components')
             error('Solution %d is missing required field: num_components', s);
         end
@@ -209,10 +197,10 @@ function validate_config(config)
             error('Solution %d: num_components must be a positive integer, got: %g', s, sol.num_components);
         end
 
-        % rotation_method (optional)
+        % --- rotation_method (optional) ---
         if isfield(sol, 'rotation_method')
             if ~ischar(sol.rotation_method) || isempty(sol.rotation_method)
-                error('Solution %d: rotation_method is specified but empty. Either remove the field or set a valid method: %s', ...
+                error('Solution %d: rotation_method is specified but empty. Either remove the field entirely or set a valid method: %s', ...
                     s, strjoin(valid_rotation_methods, ', '));
             end
             if ~ismember(sol.rotation_method, valid_rotation_methods)
@@ -221,7 +209,7 @@ function validate_config(config)
             end
         end
 
-        % components_to_flip (optional)
+        % --- components_to_flip (optional) ---
         if isfield(sol, 'components_to_flip')
             if ~isstruct(sol.components_to_flip)
                 error('Solution %d: components_to_flip must be a struct with fields .unrotated and/or .rotated', s);
@@ -250,7 +238,6 @@ function validate_config(config)
     end
 end
 
-
 function validate_flip_indices(indices, num_components, sol_idx, label)
     if ~isnumeric(indices)
         error('Solution %d: components_to_flip.%s must be a numeric vector (use [] for none)', ...
@@ -270,8 +257,6 @@ end
 
 
 function display_parameters(config)
-    % Called AFTER generate_config — all fields including auto-derived ones are present.
-
     fprintf('\n==== CPCA Analysis Parameters ====\n');
     fprintf('Base CPCA Directory : %s\n', config.cpcaDIR);
     fprintf('Base Directory      : %s\n', config.baseDIR);
@@ -287,16 +272,14 @@ function display_parameters(config)
     if isfield(config, 'createMask') && config.createMask
         fprintf('Mask Creation Method: %d\n', config.maskMethod);
     end
+    fprintf('Conditions          : %s\n', strjoin(config.condition_names, ', '));
     fprintf('Time Bins           : %d\n', config.bins);
     fprintf('TR                  : %g\n', config.TR);
     fprintf('Timing in Scans     : %d\n', config.inScans);
     fprintf('Normalize G Matrix  : %d\n', config.normalize_G);
-
-    % Auto-derived fields
     fprintf('Num Subjects        : %d\n', config.num_subjects);
-    fprintf('Num Runs (max)      : %d\n', config.num_runs);
+    fprintf('Runs per Subject    : %d\n', config.num_runs);
     fprintf('Num Conditions      : %d\n', config.num_conditions);
-    fprintf('Conditions          : %s\n', strjoin(config.condition_names, ', '));
 
     fprintf('\nSolutions (%d total):\n', length(config.solutions));
     for s = 1:length(config.solutions)
