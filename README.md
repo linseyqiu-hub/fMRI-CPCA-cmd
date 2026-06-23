@@ -276,36 +276,58 @@ Edit `configs.m` to set your manual parameters. See the **configs.m Lifecycle** 
 * `config.inScans` - Timing in Scans (1) or seconds (0)
 * `config.normalize_G` - Normalize G matrix (1-Yes, 0-No)
 ### Component Extraction Parameters
- 
+
 Multiple solutions are supported. Each solution specifies an independent extraction:
- 
+
 ```matlab
 config.solutions(1).num_components = 2;
 config.solutions(1).rotation_method = 'varimax';       % optional — omit for no rotation
 config.solutions(1).components_to_flip.unrotated = [1];
 config.solutions(1).components_to_flip.rotated   = [1 2];
- 
+
 config.solutions(2).num_components = 3;
 config.solutions(2).rotation_method = 'varimax';
 config.solutions(2).components_to_flip.unrotated = [];
 config.solutions(2).components_to_flip.rotated   = [2];
- 
-% hrfmax rotation requires two additional fields:
+
+% hrfmax — path A: generate shapes from cognitive events
 config.solutions(3).num_components    = 2;
 config.solutions(3).rotation_method   = 'hrfmax';
-config.solutions(3).hrfmax_shapes_path = '/path/to/shapes.mat';  % path to HRF template file
-config.solutions(3).hrfmax_shapes_var  = 'shapes';               % variable name inside the .mat
+config.solutions(3).hrfmax_iterations = 500000;        % optional — default 500000
+config.solutions(3).hrfmax_events(1).onset       = 0;       % ms
+config.solutions(3).hrfmax_events(1).duration    = 500;     % ms
+config.solutions(3).hrfmax_events(1).description = 'visual onset';    % optional label
+config.solutions(3).hrfmax_events(2).onset       = 500;
+config.solutions(3).hrfmax_events(2).duration    = 1000;
+config.solutions(3).hrfmax_events(2).description = 'visual display';
+config.solutions(3).hrfmax_events(3).onset       = 1500;
+config.solutions(3).hrfmax_events(3).duration    = 1000;
+config.solutions(3).hrfmax_events(3).description = 'response process';
+% omit event 4 to exclude evaluation process
 config.solutions(3).components_to_flip.unrotated = [];
 config.solutions(3).components_to_flip.rotated   = [];
+
+% hrfmax — path B: use pre-built shapes file
+config.solutions(4).num_components       = 2;
+config.solutions(4).rotation_method      = 'hrfmax';
+config.solutions(4).hrfmax_iterations    = 500000;     % optional — default 500000
+config.solutions(4).hrfmax_shapes_path   = '/path/to/shapes.mat';
+config.solutions(4).hrfmax_shapes_var    = 'shapes';
+config.solutions(4).components_to_flip.unrotated = [];
+config.solutions(4).components_to_flip.rotated   = [];
 ```
- 
+
 Rules:
 * `rotation_method` is optional. If omitted, no rotation is applied. If present, must be a non-empty valid string.
 * `components_to_flip` has two keys only: `unrotated` and `rotated`.
 * Specifying `components_to_flip.rotated` without a `rotation_method` is an error.
 * Duplicate flip indices within the same key are an error.
-* `hrfmax_shapes_path` and `hrfmax_shapes_var` are required when `rotation_method = 'hrfmax'` and ignored for all other methods.
-* `hrfmax_shapes_path` must point to a `.mat` file containing an `[n_shapes × bins]` matrix, where `bins` matches `config.bins`. The variable name inside that file is specified by `hrfmax_shapes_var` (typically `'shapes'`).
+* For `rotation_method = 'hrfmax'`, shapes must be provided via one of two mutually exclusive paths:
+  * **Path A — event generation:** define `hrfmax_events` as a struct array with `onset` and `duration` fields (milliseconds). Shapes are generated automatically and saved to `outputDIR`. `description` is optional and does not affect computation.
+  * **Path B — pre-built file:** define `hrfmax_shapes_path` (path to `.mat` file) and `hrfmax_shapes_var` (variable name inside the file, typically `'shapes'`). The shapes matrix must be `[n_shapes × bins]` where `bins` matches `config.bins`.
+  * If both are defined, Path A takes priority.
+  * If neither is defined, Stage 3 will error.
+* `hrfmax_iterations` is optional for both paths. Omit to use the default of 500000.
 ## Analysis Steps
  
 The legacy script performs the following steps:
