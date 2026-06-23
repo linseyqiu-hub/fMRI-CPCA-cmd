@@ -115,12 +115,13 @@ function this_T = calc_href_T_matrix( state, pop )
   for loop = state.loop_start:state.iterations
 
     if ( floor(loop/state.iteration_gap)-(loop/state.iteration_gap) == 0 )
-      fprintf( '\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b%7d/%7d', loop, state.iterations );
-      
-      state.info = pop.getStateInfo();
-      save hrfmax_state state
-     
-    end;
+        fprintf( '\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b%7d/%7d', loop, state.iterations );
+    
+        if ~isempty(pop)                        % ← add this guard
+            state.info = pop.getStateInfo();
+            save hrfmax_state state
+        end                                     % ← and close it
+    end
 
     if ~isempty(pop)
       x = pop.getSaveState();

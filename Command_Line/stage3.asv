@@ -54,8 +54,6 @@ save_state(STATE_FILE, state);
  
 % ── Add CPCA toolbox to path ──────────────────────────────
 addpath(genpath(config.cpcaDIR));
-javaaddpath(fullfile(config.cpcaDIR, 'Core', 'Java', 'cpca_progress.jar'));
-javaaddpath(fullfile(config.cpcaDIR, 'Core', 'Java', 'TalairachRegions.jar'));
 % resolve output directory
 if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
        outputDIR = config.outputDIR;
@@ -83,32 +81,32 @@ for s = 1:length(config.solutions)
     if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method)
         fprintf('\n2. Rotating components using %s...\n', sol.rotation_method);
 
-        if strcmpi(sol.rotation_method, 'hrfmax')
-            % validate
-            if ~isfield(sol, 'hrfmax_shapes_path') || isempty(sol.hrfmax_shapes_path)
-                error('[Stage 3] hrfmax selected but sol.hrfmax_shapes_path is missing or empty.');
-            end
-            if ~exist(sol.hrfmax_shapes_path, 'file')
-                error('[Stage 3] hrfmax_shapes_path does not exist on disk: %s', sol.hrfmax_shapes_path);
-            end
-            if ~isfield(sol, 'hrfmax_shapes_var') || isempty(sol.hrfmax_shapes_var)
-                error('[Stage 3] hrfmax selected but sol.hrfmax_shapes_var is missing or empty.');
-            end
-            % smuggle extra fields inside the cell
-            rot_method = {struct('method',   'hrfmax', ...
-                                'hrf_file', sol.hrfmax_shapes_path, ...
-                                'hrf_mat',  sol.hrfmax_shapes_var)};
-        else
-            rot_method = {sol.rotation_method};   % string as before
+    if strcmpi(sol.rotation_method, 'hrfmax')
+        % validate
+        if ~isfield(sol, 'hrfmax_shapes_path') || isempty(sol.hrfmax_shapes_path)
+            error('[Stage 3] hrfmax selected but sol.hrfmax_shapes_path is missing or empty.');
         end
-
-        cd(outputDIR);
-        Extract_Rotate_Components(config.baseDIR, sol.num_components, 'R', 'G', outputDIR, rot_method);
-        cd(config.cpcaDIR);
-        fprintf('   Completed: Components rotated.\n');
+        if ~exist(sol.hrfmax_shapes_path, 'file')
+            error('[Stage 3] hrfmax_shapes_path does not exist on disk: %s', sol.hrfmax_shapes_path);
+        end
+        if ~isfield(sol, 'hrfmax_shapes_var') || isempty(sol.hrfmax_shapes_var)
+            error('[Stage 3] hrfmax selected but sol.hrfmax_shapes_var is missing or empty.');
+        end
+        % smuggle extra fields inside the cell
+        rot_method = {struct('method',   'hrfmax', ...
+                             'hrf_file', sol.hrfmax_shapes_path, ...
+                             'hrf_mat',  sol.hrfmax_shapes_var)};
     else
-        fprintf('\n2. No rotation method specified for solution %d — skipping rotation.\n', s);
+        rot_method = {sol.rotation_method};   % string as before
     end
+
+    cd(outputDIR);
+    Extract_Rotate_Components(config.baseDIR, sol.num_components, 'R', 'G', outputDIR, rot_method);
+    cd(config.cpcaDIR);
+    fprintf('   Completed: Components rotated.\n');
+else
+    fprintf('\n2. No rotation method specified for solution %d — skipping rotation.\n', s);
+end
 
 end
 
