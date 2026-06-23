@@ -90,36 +90,37 @@ else
     x = size(rotations,1);
     rot_setting=[];
     for j = 1:length(rot_method)
-    new_setting = [];
+        new_setting = [];
     
     % unpack — string or struct
-    entry = rot_method{j};
-    if isstruct(entry)
-        method_name = entry.method;
-    else
-        method_name = char(entry);
-    end
+        entry = rot_method{j};
+        if isstruct(entry)
+            method_name = entry.method;
+        else
+            method_name = char(entry);
+        end
 
-    for i = 1:x
-        if strcmp(method_name, char(rotations(i).description))
-            new_setting = rotations(i);
-            new_setting.defaults.reltol = sqrt(eps);
+        for i = 1:x
+            if strcmp(method_name, char(rotations(i).description))
+                new_setting = rotations(i);
+                new_setting.defaults.reltol = sqrt(eps);
 
             % inject hrfmax fields if carried in struct
-            if isstruct(entry) && isfield(entry, 'hrf_file')
-                new_setting.defaults.hrf_file = entry.hrf_file;
-                new_setting.defaults.hrf_mat  = entry.hrf_mat;
-            end
+                if isstruct(entry) && isfield(entry, 'hrf_file')
+                    new_setting.defaults.hrf_file = entry.hrf_file;
+                    new_setting.defaults.hrf_mat  = entry.hrf_mat;
+                    new_setting.defaults.iterations  = entry.iterations;
+                end
 
-            if isempty(rot_setting)
-                rot_setting = new_setting;
-            else
-                rot_setting = [rot_setting; new_setting];
+                if isempty(rot_setting)
+                    rot_setting = new_setting;
+                else
+                    rot_setting = [rot_setting; new_setting];
+                end
             end
         end
     end
-    end
-    
+
     if isempty(rot_setting)
         disp('unknown rotation method.');
         return;

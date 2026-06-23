@@ -109,6 +109,9 @@ else
                 if isstruct(entry) && isfield(entry, 'hrf_file')
                     new_setting.defaults.hrf_file = entry.hrf_file;
                     new_setting.defaults.hrf_mat  = entry.hrf_mat;
+                    if isfield(entry, 'iterations')
+                        new_setting.defaults.iterations  = entry.iterations;
+                    end
                 end
 
                 if isempty(rot_setting)
