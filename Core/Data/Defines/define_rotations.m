@@ -97,7 +97,7 @@ function rs  = define_rotations()
     st.parameters.HRF = 1;
 
     st.defaults.power = 2;
-    st.defaults.iterations = 500000;
+    st.defaults.iterations = 5000000;
     st.defaults.oblique = 0;
     st.defaults.gamma = 0;
     st.defaults.orthogonal_output = 0;
