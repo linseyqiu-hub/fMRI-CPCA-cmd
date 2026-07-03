@@ -310,7 +310,7 @@ config.solutions(3).components_to_flip.rotated   = [];
 % hrfmax — path B: use pre-built shapes file
 config.solutions(4).num_components       = 2;
 config.solutions(4).rotation_method      = 'hrfmax';
-config.solutions(4).hrfmax_iterations    = 500000;     % optional — default 500000
+config.solutions(4).hrfmax_iterations    = 5000000;     % optional — default 5000000
 config.solutions(4).hrfmax_shapes_path   = '/path/to/shapes.mat';
 config.solutions(4).hrfmax_shapes_var    = 'shapes';
 config.solutions(4).components_to_flip.unrotated = [];
@@ -327,7 +327,7 @@ Rules:
   * **Path B — pre-built file:** define `hrfmax_shapes_path` (path to `.mat` file) and `hrfmax_shapes_var` (variable name inside the file, typically `'shapes'`). The shapes matrix must be `[n_shapes × bins]` where `bins` matches `config.bins`.
   * If both are defined, Path A takes priority.
   * If neither is defined, Stage 3 will error.
-* `hrfmax_iterations` is optional for both paths. Omit to use the default of 500000.
+* `hrfmax_iterations` is optional for both paths. Omit to use the default of 5000000.
 ## Analysis Steps
  
 The legacy script performs the following steps:
