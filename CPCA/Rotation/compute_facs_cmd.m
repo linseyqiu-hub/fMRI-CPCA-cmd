@@ -96,19 +96,21 @@ function [T, PR, VR, UR] = compute_facs_cmd(Zheader, P, U, V,nd,tsum,nr,nc, Ghea
 
   switch lower(rotation_specs.method)
   case 'hrfmax'
-    
-    % -------------------------------------------------
-    % hrfmax by itself is an orthogonal rotation
-    % -------------------------------------------------
+    USE_HILLCLIMB = 1;    % flip to 1 to try the experimental version — manual toggle, not config-driven
 
-    T = rotation_specs.defaults.T_mat; 
+    T = rotation_specs.defaults.T_mat;
     if ( isempty( T ) )
-
       load_state = 0;
       if isfield( rotation_specs.parameters, 'load_state' )
         load_state = rotation_specs.parameters.load_state;
       end
-      T = hrfmax(P, U, shapes, rotation_specs.defaults.iterations, load_state);
+
+      if USE_HILLCLIMB
+        T = hrfmax_hillclimb(P, U, shapes, load_state);
+      else
+        T = hrfmax(P, U, shapes, rotation_specs.defaults.iterations, load_state);
+      end
+
       if isempty(T)
         return;
       end

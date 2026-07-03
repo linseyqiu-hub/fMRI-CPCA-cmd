@@ -9,7 +9,7 @@ function T = rand_T( U )
   for i = 2:size(U,2)
     D = U*T(:,i);
     D = D - UR*(inv(UR'*UR)*UR'*D);
-    T(:,i)=inv(U'*U)*U'*D;
+    T(:,i) = inv(U'*U)*U'*D;
     if norm(D,1) > exp(-32)
       UR          = [UR D];
       j(end + 1) = i;
