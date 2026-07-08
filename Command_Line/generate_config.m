@@ -29,8 +29,11 @@ function config = generate_config(config, files_txt_path)
 %
 % files.txt assumptions:
 %   A1. Every scandir: line contains both sdir: and runs: tokens.
-%   A2. runs: is always tilde-delimited, even for a single run
-%       (e.g. runs:run-1, never runs:<na>).
+%   A2. runs: is either tilde-delimited (e.g. runs:run-1~run-2, even for a
+%       single named run folder, e.g. runs:run-1), OR the literal value
+%       runs:<na>, meaning the subject has NO run subfolder at all (scan
+%       files sit directly in the subject directory). Both are valid and
+%       supported.
 %   A3. Subjects appear in files.txt in the same order as they appear
 %       on disk (insertion order from Create_File_List).
 %
@@ -51,14 +54,24 @@ function config = generate_config(config, files_txt_path)
 %        output is identical, only the algorithm changes.)
 %
 % Prefix and condition name assumptions:
-%   A10. For a subject with >1 run, the variable name prefix is:
+%   A10. For a subject with >1 run folder, the variable name prefix is:
 %            <sdir>_<run_folder_name>
 %        e.g. sub-01_run-1
-%   A11. For a subject with exactly 1 run, BOTH of the following are
-%        accepted as valid prefixes:
+%        (exact match only — no fallback, since with multiple run
+%        folders the run name is required to disambiguate).
+%   A11. For a subject with exactly ONE run folder (runs:run-1, a real
+%        folder exists on disk), BOTH of the following are accepted as
+%        valid prefixes:
 %            <sdir>                    (e.g. PreSingle_VISION_V01)
 %            <sdir>_<run_folder_name>  (e.g. PreSingle_VISION_V01_run-1)
 %        The condition name is everything after the matched prefix + '_'.
+%   A11b. For a subject with NO run subfolder at all (runs:<na>), there is
+%        no run folder name to optionally include, so there is exactly ONE
+%        valid prefix:
+%            <sdir>
+%        This subject is treated as having a single virtual run (run_idx=1)
+%        with no folder name. Underscore-delimited, same as A11 — no new
+%        delimiter convention.
 %   A12. Condition name = the substring after stripping prefix + '_'
 %        from the left-hand side of '=' in the variable assignment line.
 %   A13. Condition names are collected in order of first appearance in
@@ -77,6 +90,8 @@ fprintf('\n-- generate_config: deriving subject/run/condition fields --\n');
 
 % ── Step 1: parse files.txt ───────────────────────────────────────────────
 % Extract ordered list of subjects and their run folder names.
+% runs_list{s} is a cell array of run folder names for subject s, OR an
+% empty cell {} if the subject has no run subfolder (runs:<na>, A2/A11b).
 
 if ~exist(files_txt_path, 'file')
     error('generate_config: files.txt not found at: %s', files_txt_path);
@@ -99,6 +114,7 @@ fclose(fid);
 % Parse scandir lines → (sdir, runs[])
 subjects  = {};   % ordered cell array of sdir strings
 runs_list = {};   % cell array of run name cell arrays, one per subject
+                  % (empty cell {} means "no run subfolder", A11b)
 
 for i = 1:numel(raw_lines)
     line = raw_lines{i};
@@ -113,7 +129,7 @@ for i = 1:numel(raw_lines)
     end
     sdir = sdir_tok{1};
 
-    % Extract runs: (tilde-delimited)
+    % Extract runs: (tilde-delimited, or <na>)
     runs_tok = regexp(line, 'runs:(\S+)', 'tokens', 'once');
     if isempty(runs_tok)
         error('generate_config: malformed scandir line (no runs:): %s', line);
@@ -121,11 +137,12 @@ for i = 1:numel(raw_lines)
     runs_str = runs_tok{1};
 
     if strcmp(runs_str, '<na>')
-        % A2: runs:<na> should not occur per assumption, but handle defensively
-        error('generate_config: subject %s has runs:<na> — expected at least one run folder.', sdir);
+        % A11b: subject has no run subfolder at all. Not an error —
+        % treated as a single virtual run with no folder name.
+        run_names = {};
+    else
+        run_names = strsplit(runs_str, '~');  % e.g. {'run-1','run-2',...}
     end
-
-    run_names = strsplit(runs_str, '~');  % e.g. {'run-1','run-2',...}
 
     subjects{end+1}  = sdir;
     runs_list{end+1} = run_names;
@@ -136,17 +153,27 @@ if num_subjects == 0
     error('generate_config: no scandir lines found in files.txt.');
 end
 
-% Compute max runs across all subjects
+% Compute max runs across all subjects. A subject with no run subfolder
+% still counts as 1 run (the virtual run), so it can never drag num_runs
+% below what any real subject has, and a study of only no-subfolder
+% subjects still correctly reports num_runs = 1.
 num_runs = 0;
 for s = 1:num_subjects
-    num_runs = max(num_runs, numel(runs_list{s}));
+    num_runs = max(num_runs, max(numel(runs_list{s}), 1));
 end
 
 fprintf('   Parsed files.txt: %d subjects, max %d runs.\n', num_subjects, num_runs);
 
 % ── Step 2: build ordered prefix list ────────────────────────────────────
 % Each entry: struct with fields subject_idx, run_idx, prefix, sdir, run_name
-% For single-run subjects: two candidate prefixes (A11).
+%
+% Two independent, single-responsibility builders — no shared branching:
+%   - build_prefix_entry_no_subfolder:     subject has NO run subfolder (A11b)
+%   - build_prefix_entries_with_subfolder: subject has >=1 run subfolder (A10/A11)
+% Subjects are routed to exactly one builder based on files.txt content
+% (isempty(run_names)), decided once in Step 1 — never re-decided here.
+% Looping s = 1:num_subjects preserves original files.txt order (A9),
+% so no separate re-sort/merge step is needed.
 
 prefix_list = struct('subject_idx', {}, 'run_idx', {}, ...
                      'sdir', {}, 'run_name', {}, 'prefix', {}, 'alt_prefix', {});
@@ -154,23 +181,17 @@ prefix_list = struct('subject_idx', {}, 'run_idx', {}, ...
 for s = 1:num_subjects
     sdir      = subjects{s};
     run_names = runs_list{s};
-    is_single = numel(run_names) == 1;
 
-    for r = 1:numel(run_names)
-        run_name = run_names{r};
-        entry.subject_idx = s;
-        entry.run_idx     = r;
-        entry.sdir        = sdir;
-        entry.run_name    = run_name;
-        entry.prefix      = [sdir '_' run_name];   % always try sub_run first
-
-        if is_single
-            entry.alt_prefix = sdir;               % also accept bare sdir (A11)
-        else
-            entry.alt_prefix = '';
-        end
-
+    if isempty(run_names)
+        % A11b: no run subfolder — one virtual run, one valid prefix.
+        entry = build_prefix_entry_no_subfolder(s, sdir);
         prefix_list(end+1) = entry;
+    else
+        % A10/A11: one or more real run subfolders.
+        entries = build_prefix_entries_with_subfolder(s, sdir, run_names);
+        for k = 1:numel(entries)
+            prefix_list(end+1) = entries(k);
+        end
     end
 end
 
@@ -285,11 +306,14 @@ fprintf('   Parsed onsets file: %d unique conditions found.\n', numel(condition_
 % ── Step 4: derive subject_conditions ────────────────────────────────────
 % For each subject, for each run: find which conditions appeared,
 % map to indices in condition_names.
+% A subject with no run subfolder (A11b) gets exactly one slot, matching
+% the single virtual run assigned to it in Step 2.
 
 subject_conditions = cell(1, num_subjects);
 for s = 1:num_subjects
-    subject_conditions{s} = cell(1, numel(runs_list{s}));
-    for r = 1:numel(runs_list{s})
+    n_slots = max(numel(runs_list{s}), 1);
+    subject_conditions{s} = cell(1, n_slots);
+    for r = 1:n_slots
         subject_conditions{s}{r} = [];
     end
 end
@@ -321,6 +345,45 @@ append_config_to_file(config, num_subjects, num_runs, num_conditions, ...
                       condition_names, subject_conditions, subjects, runs_list);
 
 fprintf('-- generate_config: done --\n\n');
+end
+
+
+% ── Helper: build prefix_list entry for a subject with NO run subfolder ───
+% A11b. Exactly one virtual run, exactly one valid prefix (bare sdir).
+% No fallback needed — there is no run folder name to optionally include.
+function entry = build_prefix_entry_no_subfolder(subject_idx, sdir)
+    entry.subject_idx = subject_idx;
+    entry.run_idx     = 1;
+    entry.sdir        = sdir;
+    entry.run_name    = '';
+    entry.prefix      = sdir;
+    entry.alt_prefix  = '';
+end
+
+
+% ── Helper: build prefix_list entries for a subject with >=1 run subfolder ─
+% A10 (multi-run: exact match only) / A11 (single run: prefix + bare-sdir fallback).
+function entries = build_prefix_entries_with_subfolder(subject_idx, sdir, run_names)
+    is_single = numel(run_names) == 1;
+    entries = struct('subject_idx', {}, 'run_idx', {}, ...
+                     'sdir', {}, 'run_name', {}, 'prefix', {}, 'alt_prefix', {});
+
+    for r = 1:numel(run_names)
+        run_name = run_names{r};
+        entry.subject_idx = subject_idx;
+        entry.run_idx     = r;
+        entry.sdir        = sdir;
+        entry.run_name    = run_name;
+        entry.prefix      = [sdir '_' run_name];
+
+        if is_single
+            entry.alt_prefix = sdir;   % A11 fallback
+        else
+            entry.alt_prefix = '';     % A10: no fallback with multiple runs
+        end
+
+        entries(end+1) = entry;
+    end
 end
 
 
@@ -428,7 +491,11 @@ function append_config_to_file(config, num_subjects, num_runs, num_conditions, .
     % subject_conditions
     for s = 1:num_subjects
         run_names = runs_list{s};
-        run_label = strjoin(run_names, ', ');
+        if isempty(run_names)
+            run_label = '(no run subfolder)';   % A11b: cosmetic label only
+        else
+            run_label = strjoin(run_names, ', ');
+        end
         fprintf(fid, 'config.subject_conditions{%d} = { ', s);
         for r = 1:numel(subject_conditions{s})
             indices = subject_conditions{s}{r};

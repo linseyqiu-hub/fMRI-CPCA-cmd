@@ -1,4 +1,4 @@
-function create_mask_cmd(scan_information,Zheader,mask_file, option )
+function create_mask_cmd(scan_information,Zheader,mask_file, option, removeVentricles )
 %--- create common mask for all scans
 %--- option 1: Global mean threshold
 %--- option 2: Harvard Oxform MNI template 
@@ -15,7 +15,7 @@ function create_mask_cmd(scan_information,Zheader,mask_file, option )
           return
   end
 
-  handles.chk_no_ventricles.Value = 1;  % Remove Ventricles 
+  handles.chk_no_ventricles.Value = removeVentricles;  % Remove Ventricles 
 
   % set recreate existing masks
   handles.chk_recreate_masks.Value = 0;

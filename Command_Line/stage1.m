@@ -13,7 +13,12 @@ function stage1()
 %   - If satisfied, run >> stage2
  
 clear; clc; close all;
-restoredefaultpath;
+% Inside stage1.m, right after restoredefaultpath:
+restoredefaultpath
+%thisFile = mfilename('fullpath');           % full path to stage1.m itself
+%[thisDir, ~, ~] = fileparts(thisFile);      % .../fMRI-CPCA-cmd/Command_Line
+%pipelineRoot = fileparts(thisDir);          % .../fMRI-CPCA-cmd  (one level up)
+%addpath(genpath(pipelineRoot))
  
 % Suppress warnings
 warning('off', 'all');
@@ -75,7 +80,8 @@ try
             'fileName',   'files.txt', ...
             'maskName',   config.maskName, ...
             'maskMethod', config.maskMethod, ...
-            'output_dir', outputDIR);
+            'output_dir', outputDIR, ...
+            'removeVentricles', config.removeVentricles);
     else
         Create_ZData_Matrix(config.baseDIR, ...
             'fileName', 'files.txt', ...
@@ -271,61 +277,60 @@ end
 
 function display_parameters(config)
     % Called AFTER generate_config — all fields including auto-derived ones are present.
-
     fprintf('\n==== CPCA Analysis Parameters ====\n');
     fprintf('Base CPCA Directory : %s\n', config.cpcaDIR);
     fprintf('Base Directory      : %s\n', config.baseDIR);
-
-    if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
+if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
         fprintf('Output Directory    : %s\n', config.outputDIR);
-    else
+else
         fprintf('Output Directory    : (default — same as baseDIR)\n');
-    end
-
+end
     fprintf('File Wildcard       : %s\n', config.filewildcard);
     fprintf('Mask Name           : %s\n', config.maskName);
-    if isfield(config, 'createMask') && config.createMask
+if isfield(config, 'createMask') && config.createMask
         fprintf('Mask Creation Method: %d\n', config.maskMethod);
-    end
+end
+if isfield(config, 'removeVentricles')
+if config.removeVentricles
+            fprintf('Ventricles          : Excluded\n');
+else
+            fprintf('Ventricles          : Included\n');
+end
+end
     fprintf('Time Bins           : %d\n', config.bins);
     fprintf('TR                  : %g\n', config.TR);
     fprintf('Timing in Scans     : %d\n', config.inScans);
     fprintf('Normalize G Matrix  : %d\n', config.normalize_G);
-
-    % Auto-derived fields
+% Auto-derived fields
     fprintf('Num Subjects        : %d\n', config.num_subjects);
     fprintf('Num Runs (max)      : %d\n', config.num_runs);
     fprintf('Num Conditions      : %d\n', config.num_conditions);
     fprintf('Conditions          : %s\n', strjoin(config.condition_names, ', '));
-
     fprintf('\nSolutions (%d total):\n', length(config.solutions));
-    for s = 1:length(config.solutions)
+for s = 1:length(config.solutions)
         sol = config.solutions(s);
         fprintf('  Solution %d:\n', s);
         fprintf('    Components      : %d\n', sol.num_components);
-
-        if isfield(sol, 'rotation_method')
+if isfield(sol, 'rotation_method')
             fprintf('    Rotation Method : %s\n', sol.rotation_method);
-        else
+else
             fprintf('    Rotation Method : none\n');
-        end
-
-        if isfield(sol, 'components_to_flip')
-            if isfield(sol.components_to_flip, 'unrotated') && ~isempty(sol.components_to_flip.unrotated)
+end
+if isfield(sol, 'components_to_flip')
+if isfield(sol.components_to_flip, 'unrotated') && ~isempty(sol.components_to_flip.unrotated)
                 fprintf('    Flip Unrotated  : [%s]\n', num2str(sol.components_to_flip.unrotated));
-            else
+else
                 fprintf('    Flip Unrotated  : none\n');
-            end
-            if isfield(sol.components_to_flip, 'rotated') && ~isempty(sol.components_to_flip.rotated)
+end
+if isfield(sol.components_to_flip, 'rotated') && ~isempty(sol.components_to_flip.rotated)
                 fprintf('    Flip Rotated    : [%s]\n', num2str(sol.components_to_flip.rotated));
-            else
+else
                 fprintf('    Flip Rotated    : none\n');
-            end
-        else
+end
+else
             fprintf('    Flip Unrotated  : none\n');
             fprintf('    Flip Rotated    : none\n');
-        end
-    end
-
+end
+end
     fprintf('==================================\n\n');
 end

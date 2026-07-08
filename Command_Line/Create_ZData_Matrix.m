@@ -21,14 +21,13 @@ function Create_ZData_Matrix(base_dir,varargin)
 
 defaultFileListName = 'ZInfo.mat';
 defaultMaskName = 'mask.img';
-
 p = inputParser;
 addRequired(p,'baseDir',@(x)validateattributes(x,{'char'},{'nonempty'}));
 addParameter(p,'fileName',defaultFileListName,@(x)validateattributes(x,{'char'},{'nonempty'}));
 addParameter(p,'maskName',defaultMaskName,@(x)validateattributes(x,{'char'},{'nonempty'}));
 addParameter(p,'maskMethod',[], @(x)validateattributes(x,{'numeric'},{'nonempty','integer','positive'}));
 addParameter(p,'output_dir','', @(x)validateattributes(x,{'char'},{}));
-
+addParameter(p,'removeVentricles', 1, @(x)validateattributes(x,{'numeric'},{'scalar','binary'}));  % 1=exclude (default), 0=include
 parse(p,base_dir,varargin{:});
 
 % ---- resolve directories -------------------------
@@ -122,7 +121,7 @@ if ( exist( fn, 'file' ) )
 end
 
 if ~isempty(p.Results.maskMethod)
-    create_mask_cmd(scan_information, Zheader, scan_information.mask.file, p.Results.maskMethod);
+    create_mask_cmd(scan_information, Zheader, scan_information.mask.file, p.Results.maskMethod, p.Results.removeVentricles);
 end
 
 % --- save Zinfo
