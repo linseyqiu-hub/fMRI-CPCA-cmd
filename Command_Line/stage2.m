@@ -1,14 +1,10 @@
 function stage2()
 original_dir = pwd;
-% stage2 - Run Stage 2: Z normalization + G matrix creation + regression
+% stage2 - Run Stage 2:  regression
 %
 % Usage: >> stage2
 %
 % Stage 2 covers:
-%   - process_subject_normalization_cmd : normalize Z matrix
-%   - parse_timing                      : read timing onsets
-%   - create_onsets_template_cmd        : build timing template
-%   - Create_GMatrix                    : build G matrix
 %   - RegressG                          : regress G from Z
 %
 % QC gate after Stage 2:
@@ -49,7 +45,7 @@ if strcmp(state.status.stage2, 'pending')
 end
  
 % ── Acquire lock ──────────────────────────────────────────
-fprintf('\n==== Stage 2: Z Normalization + G Matrix + Regression ====\n');
+fprintf('\n==== Stage 2: Z G Regression ====\n');
 state.status.stage2           = 'pending';
 state.current_stage           = 2;
 state.timestamps.stage2_start = datestr(now);
@@ -65,97 +61,8 @@ if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
 end
 try
     cleanup_stage2(outputDIR);
-    % Step 1: Normalize Z-data matrix
-    fprintf('\n1. Normalizing Z-data matrix...\n');
-    cd(outputDIR);
-    process_subject_normalization_cmd(config.baseDIR, ...
-        'linearRegress',    config.linearRegress, ...
-        'quadraticRegress', config.quadraticRegress, ...
-        'meanCenter',       config.meanCenter, ...
-        'standardize',      config.standardize, ...
-        'output_dir',       outputDIR);
-
-    cd(config.cpcaDIR);
-    if isfield(config, 'movementRegress') && config.movementRegress
-        process_subject_normalization_cmd(config.baseDIR, ...
-            'movementRegress', 1, ...
-            'output_dir',      outputDIR);
-    end
-
-    if isfield(config, 'userCovariants') && ~isempty(config.userCovariants)
-        process_subject_normalization_cmd(config.baseDIR, ...
-            'userCovariants', config.userCovariants, ...
-            'output_dir',     outputDIR);
-    end
-    if ~strcmp(outputDIR, config.baseDIR)
-        mask_img = fullfile(config.baseDIR, 'mask_used.img');
-        mask_hdr = fullfile(config.baseDIR, 'mask_used.hdr');
-    
-        if exist(mask_img, 'file')
-            copyfile(mask_img, fullfile(outputDIR, 'mask_used.img'));
-            delete(mask_img);
-        end
-        if exist(mask_hdr, 'file')
-            copyfile(mask_hdr, fullfile(outputDIR, 'mask_used.hdr'));
-            delete(mask_hdr);
-        end
-    end
-    fprintf('   Completed: Z matrix normalized.\n');
- 
-    % Step 2: Initialize G header
-    fprintf('\n2. Initializing G matrix header...\n');
-    GH = structure_define('gheader');
-    GH.condition_name = config.condition_names;
-    GH.bins           = config.bins;
-    GH.TR             = config.TR;
-    GH.inScans        = config.inScans;
-    GH.normalize_me   = config.normalize_G;
- 
-    % Step 3: Parse timing
-    fprintf('\n3. Parsing timing onsets...\n');
-    cd(config.baseDIR);
-    load(fullfile(outputDIR, 'ZInfo.mat'), 'Zheader', 'scan_information');
-    timing = parse_timing(config.baseDIR, ...
-        config.num_subjects, ...
-        config.num_runs, ...
-        config.num_conditions, ...
-        config.subject_conditions, ...
-        config.condition_names, ...
-        scan_information);
-    cd(config.cpcaDIR);
-    fprintf('   Completed: Timing parsed.\n');
-    for s = 1:config.num_subjects
-        subj_id = subject_id_cmd(s, scan_information);
-        fprintf('Subject %d: subj_id = "%s"\n', s, subj_id);
-        for r = 1:length(config.subject_conditions{s})
-            if ~iscellstr(scan_information.SubjDir(s, r))
-                continue;
-            end
-            run_id = determine_runID_cmd(s, r, scan_information);
-            cond_indices = config.subject_conditions{s}{r};
-            fprintf('  Run %d: run_id = "%s", cond_indices = %s\n', r, run_id, mat2str(cond_indices));
-            cond_name = config.condition_names{cond_indices(1)};
-            pattern = [subj_id '_' run_id '_' cond_name];
-            fprintf('  Pattern: "%s"\n', pattern);
-        end
-    end
- 
-    % Step 4: Create timing onsets template
-    fprintf('\n4. Creating timing onsets template...\n');
-    cd(outputDIR);
-    create_onsets_template_cmd(config.baseDIR, GH, timing, outputDIR, config.subject_conditions);
-    cd(config.cpcaDIR);
-    fprintf('   Completed: timing_onsets_template.txt created.\n');
- 
-    % Step 5: Create G matrix
-    fprintf('\n5. Creating G matrix...\n');
-    cd(outputDIR);
-    Create_GMatrix(config.baseDIR, GH, fullfile(outputDIR, 'timing_onsets_template.txt'), outputDIR);
-    cd(config.cpcaDIR);
-    fprintf('   Completed: G matrix created.\n');
- 
-    % Step 6: Regress G matrix
-    fprintf('\n6. Regressing G matrix...\n');
+    % Step 1: Regress G matrix
+    fprintf('\n1. Regressing G matrix...\n');
     cd(outputDIR);
     RegressG(config.baseDIR, 'G', outputDIR);
     cd(config.cpcaDIR);

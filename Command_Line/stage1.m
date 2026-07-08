@@ -1,17 +1,25 @@
 function stage1()
-% stage1 - Run Stage 1: Create scan list + Z-data matrix + mask verification
+% stage1 - Run Stage 1: Scan list, mask creation, Z normalization, and G matrix construction
 %
 % Usage: >> stage1
 %
 % Stage 1 covers:
-%   - Create_File_List      : scan list (files.txt)
-%   - Create_ZData_Matrix   : mask creation + ZInfo.mat
+%   - Create_File_List                  : scan list (files.txt)
+%   - Create_ZData_Matrix               : mask creation + ZInfo.mat
+%   - process_subject_normalization_cmd : Z matrix normalization (Z/, mask_used.*)
+%   - structure_define('gheader')       : G matrix header initialization
+%   - parse_timing                      : timing onset parsing
+%   - create_onsets_template_cmd        : timing_onsets_template.txt
+%   - Create_GMatrix                    : G matrix construction
+%                                          (Gsegs/, Gheader.mat, timing_onsets_imported.txt)
 %
 % QC gate after Stage 1:
 %   - Inspect mask_verification.txt
 %   - Inspect mask visually in FSL/MRIcron
+%   - Inspect timing_onsets_imported.txt against timing_onsets_template.txt
+%     to confirm onsets were parsed/matched correctly before running Stage 2 regression
 %   - If satisfied, run >> stage2
- 
+
 clear; clc; close all;
 % Inside stage1.m, right after restoredefaultpath:
 restoredefaultpath
@@ -19,12 +27,12 @@ restoredefaultpath
 %[thisDir, ~, ~] = fileparts(thisFile);      % .../fMRI-CPCA-cmd/Command_Line
 %pipelineRoot = fileparts(thisDir);          % .../fMRI-CPCA-cmd  (one level up)
 %addpath(genpath(pipelineRoot))
- 
+
 % Suppress warnings
 warning('off', 'all');
- 
+
 STATE_FILE = fullfile(pwd, 'pipeline_state.mat');
- 
+
 % ── Load config ───────────────────────────────────────────
 config_file = 'configs.m';
 try
@@ -36,25 +44,24 @@ end
 original_dir = pwd;
 % ── Validate config ───────────────────────────────────────
 validate_config(config);
- 
+
 
 % ── Initialize fresh state ────────────────────────────────
 state = init_state();
- 
+
 % ── Acquire lock ──────────────────────────────────────────
-fprintf('\n==== Stage 1: Scan List + Mask Creation ====\n');
+fprintf('\n==== Stage 1: Scan List, Mask Creation, Z Normalization, G Matrix ====\n');
 state.status.stage1          = 'pending';
 state.current_stage          = 1;
 state.timestamps.stage1_start = datestr(now);
 save_state(STATE_FILE, state);
 
 
- 
+
 try
     % ── Add CPCA toolbox to path ──────────────────────────────
     addpath(genpath(config.cpcaDIR));
     % Step 1: Create scan list
-    fprintf('\n1. Creating scan list...\n');
     % resolve output directory
     if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
         outputDIR = config.outputDIR;
@@ -68,12 +75,12 @@ try
     fprintf('   Completed: files.txt created.\n');
     cd(config.cpcaDIR);
 
-    % Step 2: Fill up config.m
+    % Fill up config with auto-derived fields (subjects/runs/conditions)
     files_txt_path = fullfile(outputDIR, 'files.txt');
     config = generate_config(config, files_txt_path);
     % ── Display parameters ────────────────────────────────────
     display_parameters(config);
-    % Step 3: Create Z-data matrix + mask
+    % Step 2: Create Z-data matrix + mask
     fprintf('\n2. Creating mask and ZInfo...\n');
     if isfield(config, 'createMask') && config.createMask
         Create_ZData_Matrix(config.baseDIR, ...
@@ -103,20 +110,110 @@ try
     end
     cd(config.cpcaDIR);
     fprintf('   Completed: ZInfo.mat and mask created.\n');
- 
+     % Step 3: Normalize Z-data matrix
+    fprintf('\n3. Normalizing Z-data matrix...\n');
+    cd(outputDIR);
+    process_subject_normalization_cmd(config.baseDIR, ...
+        'linearRegress',    config.linearRegress, ...
+        'quadraticRegress', config.quadraticRegress, ...
+        'meanCenter',       config.meanCenter, ...
+        'standardize',      config.standardize, ...
+        'output_dir',       outputDIR);
+
+    cd(config.cpcaDIR);
+    if isfield(config, 'movementRegress') && config.movementRegress
+        process_subject_normalization_cmd(config.baseDIR, ...
+            'movementRegress', 1, ...
+            'output_dir',      outputDIR);
+    end
+
+    if isfield(config, 'userCovariants') && ~isempty(config.userCovariants)
+        process_subject_normalization_cmd(config.baseDIR, ...
+            'userCovariants', config.userCovariants, ...
+            'output_dir',     outputDIR);
+    end
+    if ~strcmp(outputDIR, config.baseDIR)
+        mask_img = fullfile(config.baseDIR, 'mask_used.img');
+        mask_hdr = fullfile(config.baseDIR, 'mask_used.hdr');
+    
+        if exist(mask_img, 'file')
+            copyfile(mask_img, fullfile(outputDIR, 'mask_used.img'));
+            delete(mask_img);
+        end
+        if exist(mask_hdr, 'file')
+            copyfile(mask_hdr, fullfile(outputDIR, 'mask_used.hdr'));
+            delete(mask_hdr);
+        end
+    end
+    fprintf('   Completed: Z matrix normalized.\n');
+
+    % Step 4: Initialize G header
+    fprintf('\n4. Initializing G matrix header...\n');
+    GH = structure_define('gheader');
+    GH.condition_name = config.condition_names;
+    GH.bins           = config.bins;
+    GH.TR             = config.TR;
+    GH.inScans        = config.inScans;
+    GH.normalize_me   = config.normalize_G;
+
+    % Step 5: Parse timing
+    fprintf('\n5. Parsing timing onsets...\n');
+    cd(config.baseDIR);
+    load(fullfile(outputDIR, 'ZInfo.mat'), 'Zheader', 'scan_information');
+    timing = parse_timing(config.baseDIR, ...
+        config.num_subjects, ...
+        config.num_runs, ...
+        config.num_conditions, ...
+        config.subject_conditions, ...
+        config.condition_names, ...
+        scan_information);
+    cd(config.cpcaDIR);
+    fprintf('   Completed: Timing parsed.\n');
+    for s = 1:config.num_subjects
+        subj_id = subject_id_cmd(s, scan_information);
+        fprintf('Subject %d: subj_id = "%s"\n', s, subj_id);
+        for r = 1:length(config.subject_conditions{s})
+            if ~iscellstr(scan_information.SubjDir(s, r))
+                continue;
+            end
+            run_id = determine_runID_cmd(s, r, scan_information);
+            cond_indices = config.subject_conditions{s}{r};
+            fprintf('  Run %d: run_id = "%s", cond_indices = %s\n', r, run_id, mat2str(cond_indices));
+            cond_name = config.condition_names{cond_indices(1)};
+            pattern = [subj_id '_' run_id '_' cond_name];
+            fprintf('  Pattern: "%s"\n', pattern);
+        end
+    end
+
+    % Step 6: Create timing onsets template
+    fprintf('\n6. Creating timing onsets template...\n');
+    cd(outputDIR);
+    create_onsets_template_cmd(config.baseDIR, GH, timing, outputDIR, config.subject_conditions);
+    cd(config.cpcaDIR);
+    fprintf('   Completed: timing_onsets_template.txt created.\n');
+
+    % Step 7: Create G matrix
+    fprintf('\n7. Creating G matrix...\n');
+    cd(outputDIR);
+    Create_GMatrix(config.baseDIR, GH, fullfile(outputDIR, 'timing_onsets_template.txt'), outputDIR);
+    cd(config.cpcaDIR);
+    fprintf('   Completed: G matrix created.\n');
+
+
     % ── Release lock — mark done ───────────────────────────
     state.status.stage1        = 'done';
     state.current_stage        = 1;
     state.timestamps.stage1_end = datestr(now);
     save_state(STATE_FILE, state);
- 
+
     fprintf('\n==== Stage 1 Complete ====\n');
-    fprintf('>>> MANUAL QC: Inspect mask before proceeding.\n');
+    fprintf('>>> MANUAL QC: Inspect mask and onsets before proceeding.\n');
     fprintf('    - mask_verification.txt\n');
     fprintf('    - mask visually in FSL/MRIcron\n');
+    fprintf('    - timing_onsets_imported.txt vs. timing_onsets_template.txt\n');
     fprintf('>>> When satisfied, run: >> stage2\n\n');
     cd(original_dir);
- 
+
 catch ME
     state.status.stage1        = 'failed';
     state.timestamps.stage1_end = datestr(now);
@@ -126,7 +223,7 @@ catch ME
     cd(original_dir);
     rethrow(ME);
 end
- 
+
 end
 
 function validate_config(config)
