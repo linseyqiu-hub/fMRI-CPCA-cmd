@@ -79,59 +79,61 @@ for s = 1:length(config.solutions)
     cd(config.cpcaDIR);
     fprintf('   Completed: %d components extracted.\n', sol.num_components);
 
-   if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method)
-        fprintf('\n2. Rotating components using %s...\n', sol.rotation_method);
+   
+    fprintf('\n2. Rotating components using %s...\n', sol.rotation_method);
 
-        if strcmpi(sol.rotation_method, 'hrfmax')
+    if strcmpi(sol.rotation_method, 'hrfmax')
 
-        % --- resolve iterations (optional, default 500000)
-            if isfield(sol, 'hrfmax_iterations') && ~isempty(sol.hrfmax_iterations)
-                hrfmax_iterations = sol.hrfmax_iterations;
-            else
-                hrfmax_iterations = 500000;
-            end
-
-        % --- resolve shapes
-            if isfield(sol, 'hrfmax_events') && ~isempty(sol.hrfmax_events)
-                % Case 1: generate from cognitive events
-                fprintf('   Generating shapes.mat from hrfmax_events...\n');
-                shapes = generate_shapes_cmd(sol.hrfmax_events, config.bins, config.TR);
-                shapes_path = fullfile(outputDIR, 'hrfmax_shapes.mat'); % TODO: move to solution-specific folder once naming convention is resolved
-                save(shapes_path, 'shapes');
-                fprintf('   Saved: %s\n', shapes_path);
-
-            elseif isfield(sol, 'hrfmax_shapes_path') && ~isempty(sol.hrfmax_shapes_path)
-            % Case 2: use pre-built shapes file
-                if ~exist(sol.hrfmax_shapes_path, 'file')
-                    error('[Stage 3] hrfmax_shapes_path does not exist on disk: %s', sol.hrfmax_shapes_path);
-                end
-                if ~isfield(sol, 'hrfmax_shapes_var') || isempty(sol.hrfmax_shapes_var)
-                    error('[Stage 3] hrfmax_shapes_path is set but hrfmax_shapes_var is missing.');
-                end
-                shapes_path = sol.hrfmax_shapes_path;
-
-            else
-                % Case 3: neither defined — hard error
-                error('[Stage 3] hrfmax requires either hrfmax_events or hrfmax_shapes_path to be defined.');
-            end
-
-        % --- build rot_method struct
-            rot_method = {struct('method',     'hrfmax', ...
-                                'hrf_file',   shapes_path, ...
-                                'hrf_mat',    'shapes', ...
-                                'iterations', hrfmax_iterations)};
+    % --- resolve iterations (optional, default 500000)
+        if isfield(sol, 'hrfmax_iterations') && ~isempty(sol.hrfmax_iterations)
+            hrfmax_iterations = sol.hrfmax_iterations;
         else
-            % non-hrfmax — string as before
-            rot_method = {sol.rotation_method};
+            hrfmax_iterations = 500000;
         end
 
-        cd(outputDIR);
-        Extract_Rotate_Components(config.baseDIR, sol.num_components, 'R', 'G', outputDIR, rot_method);
-        cd(config.cpcaDIR);
-        fprintf('   Completed: Components rotated.\n');
+    % --- resolve shapes
+        if isfield(sol, 'hrfmax_events') && ~isempty(sol.hrfmax_events)
+            % Case 1: generate from cognitive events
+            fprintf('   Generating shapes.mat from hrfmax_events...\n');
+            shapes = generate_shapes_cmd(sol.hrfmax_events, config.bins, config.TR);
+            shapes_path = fullfile(outputDIR, 'hrfmax_shapes.mat'); % TODO: move to solution-specific folder once naming convention is resolved
+            save(shapes_path, 'shapes');
+            fprintf('   Saved: %s\n', shapes_path);
+
+        elseif isfield(sol, 'hrfmax_shapes_path') && ~isempty(sol.hrfmax_shapes_path)
+        % Case 2: use pre-built shapes file
+            if ~exist(sol.hrfmax_shapes_path, 'file')
+                error('[Stage 3] hrfmax_shapes_path does not exist on disk: %s', sol.hrfmax_shapes_path);
+            end
+            if ~isfield(sol, 'hrfmax_shapes_var') || isempty(sol.hrfmax_shapes_var)
+                error('[Stage 3] hrfmax_shapes_path is set but hrfmax_shapes_var is missing.');
+            end
+            shapes_path = sol.hrfmax_shapes_path;
+
+        else
+            % Case 3: neither defined — hard error
+            error('[Stage 3] hrfmax requires either hrfmax_events or hrfmax_shapes_path to be defined.');
+        end
+
+    % --- build rot_method struct
+        rot_method = {struct('method',     'hrfmax', ...
+                            'hrf_file',   shapes_path, ...
+                            'hrf_mat',    'shapes', ...
+                            'iterations', hrfmax_iterations)};
     else
-        fprintf('\n2. No rotation method specified for solution %d — skipping rotation.\n', s);
+       % non-hrfmax — string as before
+        if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method)
+            rot_method = sol.rotation_method;
+        else
+            rot_method = 'varimax';
+        end
     end
+
+    cd(outputDIR);
+    Extract_Rotate_Components(config.baseDIR, sol.num_components, 'R', 'G', outputDIR, rot_method);
+    cd(config.cpcaDIR);
+    fprintf('   Completed: Components rotated.\n');
+    
 
  end
 
