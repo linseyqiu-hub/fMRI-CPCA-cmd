@@ -313,10 +313,9 @@ function validate_config(config)
         end
 
         % rotation_method (optional)
-        if isfield(sol, 'rotation_method')
-            if ~ischar(sol.rotation_method) || isempty(sol.rotation_method)
-                error('Solution %d: rotation_method is specified but empty. Either remove the field or set a valid method: %s', ...
-                    s, strjoin(valid_rotation_methods, ', '));
+        if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method)
+            if ~ischar(sol.rotation_method)
+                error('Solution %d: rotation_method must be a string. Got: %s', s, class(sol.rotation_method));
             end
             if ~ismember(sol.rotation_method, valid_rotation_methods)
                 error('Solution %d: invalid rotation_method "%s". Must be one of: %s', ...
@@ -344,8 +343,10 @@ function validate_config(config)
             end
 
             if isfield(sol.components_to_flip, 'rotated')
-                if ~isfield(sol, 'rotation_method')
-                    error('Solution %d: components_to_flip.rotated is specified but rotation_method is not defined.', s);
+                if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method) ...
+                        && ~ismember(sol.rotation_method, valid_rotation_methods)
+                    error('Solution %d: components_to_flip.rotated is specified but rotation_method "%s" is invalid. Must be one of: %s', ...
+                        s, sol.rotation_method, strjoin(valid_rotation_methods, ', '));
                 end
                 validate_flip_indices(sol.components_to_flip.rotated, sol.num_components, s, 'rotated');
             end
@@ -408,10 +409,10 @@ for s = 1:length(config.solutions)
         sol = config.solutions(s);
         fprintf('  Solution %d:\n', s);
         fprintf('    Components      : %d\n', sol.num_components);
-if isfield(sol, 'rotation_method')
+if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method)
             fprintf('    Rotation Method : %s\n', sol.rotation_method);
 else
-            fprintf('    Rotation Method : none\n');
+            fprintf('    Rotation Method : varimax (default)\n');
 end
 if isfield(sol, 'components_to_flip')
 if isfield(sol.components_to_flip, 'unrotated') && ~isempty(sol.components_to_flip.unrotated)
