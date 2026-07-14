@@ -113,6 +113,9 @@ if Zheader.total_scans == 0
     return
 end
 
+% --- verify scan integrity (corruption/dimension checks) ---
+scan_verification_cmd(scan_information, Zheader, output_dir);
+
 % ZInfo.mat goes to output_dir
 fn = fullfile(output_dir, 'ZInfo.mat');
 if ( exist( fn, 'file' ) )
