@@ -1,0 +1,186 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# cpca-submit -- submit one fMRI-CPCA stage to Slurm for the run folder you
+# are currently standing in (Model A: pwd IS the run folder = outputDIR).
+#
+# Usage:
+#     cd /scratch/st-toddwood-1/$USER/<your run folder>
+#     cpca-submit stage2
+#     cpca-submit stage2 --time 04:00:00 --mem 32G
+#
+# Install (one time, per user -- home dirs are private, cannot be done
+# centrally). Add to ~/.bash_profile:
+#     export PATH=$PATH:/arc/project/st-toddwood-1/.../fMRI-CPCA/HPC
+# and ensure this file is executable:  chmod +x cpca-submit
+# ---------------------------------------------------------------------------
+
+set -euo pipefail
+
+# --- 0. Locate ourselves and load shared defaults --------------------------
+# This runs on the LOGIN node from the real file on PATH, so BASH_SOURCE is
+# reliable here (unlike inside the sbatch script, which Slurm spools).
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./hpc_env.sh
+source "$HERE/hpc_env.sh"
+
+# Optional personal overrides (email, resource defaults). Shared file above,
+# private file here -- so nobody's address ends up version controlled.
+if [[ -f "$HOME/.cpca_env" ]]; then
+    # shellcheck source=/dev/null
+    source "$HOME/.cpca_env"
+fi
+
+# USER is not exported in every non-login shell; we run under `set -u`.
+ME="${USER:-$(id -un)}"
+
+COMPUTE_STAGES=(stage1 stage2 stage3 stage4 mask_report)
+LOGIN_STAGES=(unlock unlock_force)
+
+usage() {
+    cat <<USAGE
+cpca-submit -- submit a CPCA stage for the run folder you are standing in.
+
+  usage:  cpca-submit <stage> [--time HH:MM:SS] [--mem SIZE] [--cpus N]
+
+  stages: ${COMPUTE_STAGES[*]}
+
+  options:
+    --time HH:MM:SS   wall time            (default $DEFAULT_TIME)
+    --mem  SIZE       memory, e.g. 16G     (default $DEFAULT_MEM)
+    --cpus N          cpus per task        (default $DEFAULT_CPUS)
+    -h, --help        this message
+
+  notes:
+    * run this from INSIDE the run folder -- it must contain configs.m.
+    * unlock / unlock_force are login-node operations, not jobs. Run them
+      directly:  matlab -nodisplay -batch "unlock_force('stage2')"
+    * asking for more wall time than you need costs only queue wait; asking
+      for too little gets the stage killed mid-run with state stuck pending.
+USAGE
+}
+
+# --- 1. Parse arguments ----------------------------------------------------
+if [[ $# -lt 1 ]]; then
+    usage >&2
+    exit 2
+fi
+
+case "$1" in
+    -h|--help) usage; exit 0 ;;
+esac
+
+STAGE="$1"
+shift
+
+JOB_TIME="$DEFAULT_TIME"
+JOB_MEM="$DEFAULT_MEM"
+JOB_CPUS="$DEFAULT_CPUS"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --time) [[ $# -ge 2 ]] || { echo "ERROR: --time needs a value" >&2; exit 2; }
+                JOB_TIME="$2"; shift 2 ;;
+        --mem)  [[ $# -ge 2 ]] || { echo "ERROR: --mem needs a value" >&2; exit 2; }
+                JOB_MEM="$2";  shift 2 ;;
+        --cpus) [[ $# -ge 2 ]] || { echo "ERROR: --cpus needs a value" >&2; exit 2; }
+                JOB_CPUS="$2"; shift 2 ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "ERROR: unknown option '$1'" >&2; usage >&2; exit 2 ;;
+    esac
+done
+
+# --- 2. Validate the stage -------------------------------------------------
+if [[ " ${LOGIN_STAGES[*]} " == *" $STAGE "* ]]; then
+    cat >&2 <<MSG
+ERROR: '$STAGE' is a login-node operation, not a batch job.
+       It takes milliseconds and needs no toolbox or memory. Run it directly:
+
+           matlab -nodisplay -batch "$STAGE('stage2')"
+
+       (interactive unlock.m needs a terminal -- use salloc or the desktop.)
+MSG
+    exit 2
+fi
+
+if [[ ! " ${COMPUTE_STAGES[*]} " == *" $STAGE "* ]]; then
+    echo "ERROR: unknown stage '$STAGE'. Valid: ${COMPUTE_STAGES[*]}" >&2
+    exit 2
+fi
+
+# --- 3. Validate the run folder --------------------------------------------
+# Model A's one real failure mode is submitting from the wrong directory.
+RUN_DIR="$PWD"
+RUN_NAME="$(basename "$RUN_DIR")"
+
+if [[ ! -f "$RUN_DIR/configs.m" ]]; then
+    echo "ERROR: no configs.m in $RUN_DIR" >&2
+    echo "       cd into your run folder (= outputDIR) first." >&2
+    exit 3
+fi
+
+if [[ ! -f "$SBATCH_SCRIPT" ]]; then
+    echo "ERROR: job script not found at $SBATCH_SCRIPT" >&2
+    echo "       check CPCA_ROOT in $HERE/hpc_env.sh" >&2
+    exit 4
+fi
+
+JOB_NAME="${RUN_NAME}_${STAGE}"
+
+# --- 4. Duplicate-submission guard -----------------------------------------
+# The MATLAB session lock is check-then-write, not atomic: two jobs on the
+# same run+stage could both pass it. Catch that here, before submission.
+# -h suppresses the header, -o %j prints the FULL job name (the default
+# squeue format truncates it).
+if squeue -u "$ME" -h -o "%j" 2>/dev/null | grep -qx -- "$JOB_NAME"; then
+    echo "ERROR: '$JOB_NAME' is already queued or running." >&2
+    echo "       squeue -u $ME --name=$JOB_NAME" >&2
+    exit 5
+fi
+
+# --- 5. Log directory ------------------------------------------------------
+# Slurm does NOT create the output directory. A missing one makes the job
+# fail silently at startup with no log to explain it.
+mkdir -p "$RUN_DIR/logs"
+
+# --- 6. Submit -------------------------------------------------------------
+# Exported so the job inherits them via Slurm's default --export=ALL. The
+# job script fails loudly if they arrive empty.
+export CPCA_ROOT MODULE_MATLAB MODULE_GCC MATLAB_HOME
+
+# Mail flags only if the user opted in via ~/.cpca_env.
+MAIL_ARGS=()
+if [[ -n "${MAIL_USER:-}" ]]; then
+    MAIL_ARGS=(--mail-user="$MAIL_USER" --mail-type="${MAIL_TYPE:-END,FAIL}")
+fi
+
+# --chdir is set explicitly rather than relying on the site default, so the
+# relative --output/--error paths below are unambiguous.
+JOBID="$(sbatch --parsable \
+    --account="$ALLOC" \
+    --job-name="$JOB_NAME" \
+    --chdir="$RUN_DIR" \
+    --time="$JOB_TIME" \
+    --mem="$JOB_MEM" \
+    --cpus-per-task="$JOB_CPUS" \
+    "${MAIL_ARGS[@]}" \
+    --output="logs/${STAGE}_%j.out" \
+    --error="logs/${STAGE}_%j.err" \
+    "$SBATCH_SCRIPT" "$STAGE")"
+
+# --- 7. Report -------------------------------------------------------------
+# This printout replaces the rejected submission log: the jobid also appears
+# in the log filenames, and sacct --name=<job name> recovers it either way.
+cat <<REPORT
+submitted.
+  job id     : $JOBID
+  job name   : $JOB_NAME
+  stage      : $STAGE
+  run folder : $RUN_DIR
+  resources  : time=$JOB_TIME mem=$JOB_MEM cpus=$JOB_CPUS
+  logs       : $RUN_DIR/logs/${STAGE}_${JOBID}.out
+               $RUN_DIR/logs/${STAGE}_${JOBID}.err
+
+  watch   : squeue -j $JOBID
+  tail    : tail -f logs/${STAGE}_${JOBID}.out
+  outcome : sacct -j $JOBID
+REPORT
