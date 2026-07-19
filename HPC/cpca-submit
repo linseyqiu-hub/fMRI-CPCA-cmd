@@ -148,14 +148,17 @@ mkdir -p "$RUN_DIR/logs"
 export CPCA_ROOT MODULE_MATLAB MODULE_GCC MATLAB_HOME
 
 # Mail flags only if the user opted in via ~/.cpca_env.
-MAIL_ARGS=()
+# Seeded with a harmless flag rather than left empty: bash < 4.4 raises
+# "unbound variable" when an EMPTY array is expanded under `set -u`, which
+# would break this for anyone on an older login node.
+MAIL_ARGS=(--parsable)
 if [[ -n "${MAIL_USER:-}" ]]; then
-    MAIL_ARGS=(--mail-user="$MAIL_USER" --mail-type="${MAIL_TYPE:-END,FAIL}")
+    MAIL_ARGS+=(--mail-user="$MAIL_USER" --mail-type="${MAIL_TYPE:-END,FAIL}")
 fi
 
 # --chdir is set explicitly rather than relying on the site default, so the
 # relative --output/--error paths below are unambiguous.
-JOBID="$(sbatch --parsable \
+JOBID="$(sbatch \
     --account="$ALLOC" \
     --job-name="$JOB_NAME" \
     --chdir="$RUN_DIR" \
