@@ -54,8 +54,8 @@ save_state(STATE_FILE, state);
  
 % ── Add CPCA toolbox to path ──────────────────────────────
 addpath(genpath(config.cpcaDIR));
-javaaddpath(fullfile(config.cpcaDIR, 'Core', 'Java', 'cpca_progress.jar'));
-javaaddpath(fullfile(config.cpcaDIR, 'Core', 'Java', 'TalairachRegions.jar'));
+%javaaddpath(fullfile(config.cpcaDIR, 'Core', 'Java', 'cpca_progress.jar'));
+%javaaddpath(fullfile(config.cpcaDIR, 'Core', 'Java', 'TalairachRegions.jar'));
 % resolve output directory
 if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)
        outputDIR = config.outputDIR;

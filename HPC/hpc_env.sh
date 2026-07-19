@@ -16,7 +16,7 @@ ALLOC=st-toddwood-1
 # --- Code root (= config.cpcaDIR) ------------------------------------------
 # TODO: replace <shared-or-user> once the project folder exists on Sockeye.
 #       The same path (with /HPC appended) goes in each user's ~/.bash_profile.
-CPCA_ROOT=/arc/project/$ALLOC/<shared-or-user>/fMRI-CPCA
+CPCA_ROOT=/arc/project/st-toddwood-1/fMRI-CPCA-cmd
 
 # --- Derived paths ---------------------------------------------------------
 # cpca-submit runs with pwd = the run folder, so it must refer to the job

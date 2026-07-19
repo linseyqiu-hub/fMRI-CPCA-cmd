@@ -80,9 +80,11 @@ try
     % Loop over each solution
     % Loop over each solution
     for s = 1:length(config.solutions)
-
         sol = config.solutions(s);
-
+        if ~isfield(sol, 'components_to_flip')
+            fprintf('  Solution %d: no flips specified, skipping.\n', s);
+            continue;
+        end
         fprintf('\n==== Solution %d/%d: %d components ====\n', ...
             s, length(config.solutions), sol.num_components);
 

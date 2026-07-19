@@ -41,6 +41,8 @@ try
 catch ME
     error('Error loading configuration file: %s\n%s', config_file, ME.message);
 end
+% ── Add CPCA toolbox to path ──────────────────────────────
+addpath(genpath(config.cpcaDIR));
 original_dir = pwd;
 % ── Validate config ───────────────────────────────────────
 validate_config(config);
@@ -59,8 +61,7 @@ save_state(STATE_FILE, state);
 
 
 try
-    % ── Add CPCA toolbox to path ──────────────────────────────
-    addpath(genpath(config.cpcaDIR));
+    
     % Step 1: Create scan list
     % resolve output directory
     if isfield(config, 'outputDIR') && ~isempty(config.outputDIR)

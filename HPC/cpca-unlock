@@ -1,0 +1,106 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# cpca-unlock -- force-release a stuck 'pending' lock for the run folder you
+# are currently standing in. Thin wrapper around unlock_force.m; it exists
+# only so nobody has to type the absolute path to Command_Line/.
+#
+# Usage:
+#     cd /scratch/st-toddwood-1/$USER/<run folder>
+#     cpca-unlock stage2
+#
+# This runs on the LOGIN NODE. No sbatch, no compute allocation -- it flips
+# one field in pipeline_state.mat and exits.
+#
+# DELIBERATELY NO SAFETY CHECKS beyond "does this make sense syntactically".
+# It does not consult squeue and will not stop you unlocking a job that is
+# still running. The workflow assumes you have already checked:
+#
+#     sacct -j <jobid>          (jobid is in logs/<stage>_<jobid>.out)
+#
+#   RUNNING            -> do NOT unlock, the job is alive
+#   TIMEOUT / FAILED   -> unlock, then resubmit
+#   COMPLETED, pending -> died after writing results, before save_state
+#                         -> unlock, then resubmit
+#
+# unlock_force itself only ever moves 'pending' -> 'failed'. It refuses any
+# other status and never touches results.
+# ---------------------------------------------------------------------------
+
+set -euo pipefail
+
+# --- 0. Locate ourselves and load shared defaults --------------------------
+# NOT pwd. This resolves to the directory THIS SCRIPT FILE lives in --
+# i.e. <project>/fMRI-CPCA/HPC -- regardless of where the user is standing.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=./hpc_env.sh   <- linter hint only, no runtime effect
+source "$SELF_DIR/hpc_env.sh"
+
+STAGES=(stage1 stage2 stage3 stage4 mask_report)
+
+usage() {
+    cat <<USAGE
+cpca-unlock -- force-release a stuck 'pending' lock in the current run folder.
+
+  usage:  cpca-unlock <stage>
+
+  stages: ${STAGES[*]}
+
+  Run this from INSIDE the run folder (it must contain pipeline_state.mat).
+
+  Check the job's fate FIRST -- this wrapper does not check for you:
+      sacct -j <jobid>        jobid is in logs/<stage>_<jobid>.out
+  Do not unlock a job that is still RUNNING.
+
+  Only ever moves 'pending' -> 'failed'. Results are never touched.
+USAGE
+}
+
+# --- 1. Arguments ----------------------------------------------------------
+if [[ $# -ne 1 ]]; then
+    usage >&2
+    exit 2
+fi
+
+case "$1" in
+    -h|--help) usage; exit 0 ;;
+esac
+
+STAGE="$1"
+
+if [[ ! " ${STAGES[*]} " == *" $STAGE "* ]]; then
+    echo "ERROR: unknown stage '$STAGE'. Valid: ${STAGES[*]}" >&2
+    exit 2
+fi
+
+# --- 2. Run folder ---------------------------------------------------------
+# pipeline_state.mat, not configs.m: unlock_force reads and writes only the
+# state file, so a run folder without a config is still a legitimate target.
+RUN_DIR="$PWD"
+
+if [[ ! -f "$RUN_DIR/pipeline_state.mat" ]]; then
+    echo "ERROR: no pipeline_state.mat in $RUN_DIR" >&2
+    echo "       cd into your run folder first -- nothing to unlock here." >&2
+    exit 3
+fi
+
+# --- 3. Toolbox ------------------------------------------------------------
+UNLOCK_DIR="$CPCA_ROOT/Command_Line"
+
+if [[ ! -f "$UNLOCK_DIR/unlock_force.m" ]]; then
+    echo "ERROR: unlock_force.m not found at $UNLOCK_DIR" >&2
+    echo "       check CPCA_ROOT in $SELF_DIR/hpc_env.sh" >&2
+    exit 4
+fi
+
+# --- 4. Go -----------------------------------------------------------------
+# Only Command_Line is added, not genpath of the whole toolbox: unlock_force
+# uses builtins (load/save) only and needs nothing else on the path.
+#
+# `exec` replaces this shell with MATLAB, so MATLAB's exit code becomes this
+# script's exit code with no extra plumbing.
+echo "run folder : $RUN_DIR"
+echo "stage      : $STAGE"
+
+exec matlab -nodisplay -nosplash \
+    -batch "addpath('$UNLOCK_DIR'); unlock_force('$STAGE')"

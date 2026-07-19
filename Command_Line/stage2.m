@@ -40,7 +40,7 @@ end
 if strcmp(state.status.stage2, 'pending')
     fprintf('\nStage 2 is locked (status: pending).\n');
     fprintf('This means a previous run crashed mid-stage.\n');
-    fprintf('Run >> unlock to reset and retry.\n\n');
+    fprintf('Run >> unlock_force(''stage2'') to reset and retry.\n\n');
     return;
 end
  

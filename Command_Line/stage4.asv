@@ -80,6 +80,10 @@ try
     % Loop over each solution
     % Loop over each solution
     for s = 1:length(config.solutions)
+        if ~isfield(sol, 'components_to_flip')
+            fprintf('  Solution %d: no flips specified, skipping.\n', s);
+            continue;
+        end
 
         sol = config.solutions(s);
 
@@ -117,8 +121,9 @@ try
         % Flip ROTATED components
         % ============================================================
         rotation_method = 'varimax'
-        if sol.rotation_method
-            rotation_method = sol.rotation_method
+        if isfield(sol, 'rotation_method') && ~isempty(sol.rotation_method)
+            rotation_method = sol.rotation_method;
+        end
 
         if isfield(sol.components_to_flip, 'rotated') && ...
                 ~isempty(sol.components_to_flip.rotated)
@@ -159,7 +164,7 @@ try
     fprintf('Pipeline complete! All 4 stages finished successfully.\n\n');
     cd(original_dir);
  
-catch ME
+  catch ME
     state.status.stage4         = 'failed';
     state.timestamps.stage4_end = datestr(now);
     save_state(STATE_FILE, state);

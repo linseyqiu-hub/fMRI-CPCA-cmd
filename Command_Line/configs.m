@@ -5,15 +5,15 @@
 config = struct();
 
 % Base directory of fMRI-CPCA script
-config.cpcaDIR = 'D:\fMRI-CPCA\fMRI-CPCA-cmd'; % Should be PATH/cpca_1.2.2.23
+config.cpcaDIR = '/arc/project/st-toddwood-1/fMRI-CPCA-cmd'; % Should be PATH/cpca_1.2.2.23
 
 % Base directory containing your data
-config.baseDIR = 'D:\fMRI-CPCA\example_data_Multiple_Groups_Subjects_Runs';
+config.baseDIR = '/scratch/st-toddwood-1/linq/example_data_Multiple_Groups_Subjects_Runs';
 
 % Output directory (optional)
 % If empty, output will be placed in baseDIR (legacy behaviour)
 % If specified, all fMRI-CPCA output will be placed here instead
-config.outputDIR = 'D:\fMRI-CPCA\hrfMaxOutPut';  % e.g., 'D:\fMRI-CPCA\output'
+config.outputDIR = '/scratch/st-toddwood-1/linq/HPCTestOutPut';  % e.g., 'D:\fMRI-CPCA\output'
 
 % File wildcard for scan selection (e.g., 'swa*nii' or 'fsn*img')
 config.filewildcard = 'fsn*img';
