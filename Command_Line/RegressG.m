@@ -83,7 +83,9 @@ large = constant_define( 'PREFERENCES', 'general.large_variable_creation' );
 
 % iters = iteration_rule( 'Iterations', 'G Regression', {'primary'} );
 % handles.progressBar.setIterations( iters.primary, handles.progressBar.PRIMARY );
-
+if isempty(large) || size(large,1) < 1 || size(large,2) < 2
+    large = zeros(2,2);   % matches GUI-populated default on 2023a; residual creation off
+end
 
 if isROI
     nvox = str2num(get( handles.txt_GROI_num_voxels, 'String' ));

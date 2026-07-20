@@ -333,6 +333,10 @@ SoS = 0;
     if isEncodedRun_cmd( SubjectNo, RunNo,scan_information )
       assignin( 'base', 'G', load_run_G_cmd(Zheader, Gheader, SubjectNo, RunNo ) );
       evalin( 'base', [ 'GC_R' num2str(RunNo) ftag ' = G * C_S' num2str(SubjectNo) ftag ';' ] );
+      fprintf('DIAG s%d r%d | mask.ind=%s | GC size=%s\n', ...
+            SubjectNo, RunNo, ...
+            mat2str(size(scan_information.mask.ind)), ...
+            mat2str(evalin('base', ['size(GC_R' num2str(RunNo) ftag ')'])));
 
       sd = zeros( size( scan_information.mask.ind ) );
       for ii=1:numel(sd)
