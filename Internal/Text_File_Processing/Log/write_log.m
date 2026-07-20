@@ -8,6 +8,7 @@ function write_log( dt, t1, t2, t3, t4, t5, t6, t7 )
 
   logname = [path name];
   LFil = fopen( logname, 'a+' );		% open for append
+  if ( LFil == -1 )  return;  end;
 
   ln  = '% -------------+----------------------------------------------------------------------';
   fprintf( LFil, '\n%s\n', ln );

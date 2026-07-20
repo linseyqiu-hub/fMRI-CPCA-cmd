@@ -22,7 +22,7 @@ function stage1()
 
 clear; clc; close all;
 % Inside stage1.m, right after restoredefaultpath:
-restoredefaultpath
+%restoredefaultpath
 %thisFile = mfilename('fullpath');           % full path to stage1.m itself
 %[thisDir, ~, ~] = fileparts(thisFile);      % .../fMRI-CPCA-cmd/Command_Line
 %pipelineRoot = fileparts(thisDir);          % .../fMRI-CPCA-cmd  (one level up)
