@@ -248,9 +248,15 @@ end
 
 nreg = [1 0 0];  % --- non registered default to whole brain only
 if scan_information.mask.isRegistered
-    nreg(1) = constant_define( 'PREFERENCES', 'general.whole_brain' );
-    nreg(2) = constant_define( 'PREFERENCES', 'general.gray_matter' );
-    nreg(3) = constant_define( 'PREFERENCES', 'general.white_matter' );
+    % --- PREFERENCES lookups return [] on headless CLI (no user_settings.mat);
+    % --- nreg(ii)=[] is deletion syntax and shrinks the array -> crash.
+    % --- Guard: keep default slot unless a real scalar 0/1 comes back.
+    wb = constant_define( 'PREFERENCES', 'general.whole_brain' );
+    gm = constant_define( 'PREFERENCES', 'general.gray_matter'  );
+    wm = constant_define( 'PREFERENCES', 'general.white_matter' );
+    if isscalar(wb) && isnumeric(wb), nreg(1) = wb; end
+    if isscalar(gm) && isnumeric(gm), nreg(2) = gm; end
+    if isscalar(wm) && isnumeric(wm), nreg(3) = wm; end
 end
 
 for ii = 1:3
@@ -390,9 +396,15 @@ if exist( in_file, 'file' )
 
         nreg = [1 0 0];  % --- non registered default to whole brain only
         if scan_information.mask.isRegistered
-            nreg(1) = constant_define( 'PREFERENCES', 'general.whole_brain' );
-            nreg(2) = constant_define( 'PREFERENCES', 'general.gray_matter' );
-            nreg(3) = constant_define( 'PREFERENCES', 'general.white_matter' );
+            % --- PREFERENCES lookups return [] on headless CLI (no user_settings.mat);
+            % --- nreg(ii)=[] is deletion syntax and shrinks the array -> crash.
+            % --- Guard: keep default slot unless a real scalar 0/1 comes back.
+            wb = constant_define( 'PREFERENCES', 'general.whole_brain' );
+            gm = constant_define( 'PREFERENCES', 'general.gray_matter'  );
+            wm = constant_define( 'PREFERENCES', 'general.white_matter' );
+            if isscalar(wb) && isnumeric(wb), nreg(1) = wb; end
+            if isscalar(gm) && isnumeric(gm), nreg(2) = gm; end
+            if isscalar(wm) && isnumeric(wm), nreg(3) = wm; end
         end
 
         for ii = 1:3

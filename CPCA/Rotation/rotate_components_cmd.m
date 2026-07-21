@@ -77,6 +77,8 @@ function [result, Zheader] = rotate_components_cmd(Zheader, scan_information, ro
   if ~strcmp( GAtyp, 'GAA' )   % --- no betas for GAA (yet)
     for ii = 1:size(ep,1)
       % beta averages
+      fprintf('ep size=%s | percentiles size=%s | betas_c_pos size=%s\n', ...
+           mat2str(size(ep)), mat2str(size(ep(1).percentiles)), mat2str(size(betas_c_pos)));
       thr = min( size(ep(1).percentiles, 1), constant_define( 'PREFERENCES', 'threshold.default', 3 ) );
       avg_pos = mean(mean(betas_c_pos(ii).threshold(thr).betas(3:end,:)));
       avg_neg = mean(mean(betas_c_neg(ii).threshold(thr).betas(3:end,:)));
