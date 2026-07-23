@@ -405,7 +405,11 @@ function create_mask_cmd(scan_information,Zheader,mask_file, option, removeVentr
            smsk = cpca_read_vol( ['subject_masks' filesep D.name ] );
 
            nmsk = smsk;
-           nmsk.image = sum([ rmsk.image'; smsk.image' ] )';
+           % --- binarize before intersecting: masks carry region codes (1..5,
+           % --- see MASK_GRAY_MATTER etc), so a raw sum makes '==2' match
+           % --- gray+gray only and miss white+white (4), ventricle+ventricle (6).
+           % --- Matches the fmsk accumulation below, which already uses >0.
+           nmsk.image = sum([ rmsk.image'>0; smsk.image'>0 ] )';
           
            nmsk.ind = find( nmsk.image == 2 );
            [nmsk.x nmsk.y] = size( nmsk.ind );
@@ -535,6 +539,7 @@ function create_mask_cmd(scan_information,Zheader,mask_file, option, removeVentr
     if ~isempty(x)
       fmsk.image(x) = 0;
       fmsk.ind = find( fmsk.image ) ;
+      [fmsk.x, fmsk.y] = size( fmsk.ind );   % --- keep size in sync with ind
     end
   end
 

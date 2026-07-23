@@ -25,7 +25,7 @@ if ~exist(mat_file, 'file')
     error('mask_stats.mat not found in outputDIR: %s', output_dir);
 end
 
-load(mat_file, 'adjustments', 'flag_threshold', 'mask_id');
+load(mat_file, 'adjustments', 'flag_threshold', 'mask_id', 'max_mask');
 
 % ── Column mapping from adjustments matrix ───────────────────────────────────
 % Col 1  = SubjectNo
@@ -48,9 +48,20 @@ load(mat_file, 'adjustments', 'flag_threshold', 'mask_id');
 
 n = size(adjustments, 1);
 
-% ── Identify reference mask (subject/run with 0 removed from max) ─────────────
-ref_idx   = find(adjustments(:, 5) == 0);
-ref_size  = adjustments(ref_idx, 4);   % reference mask size (max)
+% ── Identify reference mask ──────────────────────────────────────────────────
+% Stage 1 saves max_mask = [SubjectNo RunNo] of the reference (largest) mask.
+% Prefer it over deriving the reference from adjustments(:,5)==0, which fails
+% when column 5 is never exactly zero. Fallback: largest individual mask,
+% which is the definition of the reference anyway.
+ref_idx = [];
+if exist('max_mask', 'var') && ~isempty(max_mask) && numel(max_mask) >= 2
+    ref_idx = find(adjustments(:,1) == max_mask(1) & ...
+                   adjustments(:,2) == max_mask(2), 1);
+end
+if isempty(ref_idx)
+    [~, ref_idx] = max(adjustments(:, 4));
+end
+ref_size = adjustments(ref_idx, 4);   % reference mask size (max)
 
 % ── Compute per-row values ────────────────────────────────────────────────────
 subject_no        = adjustments(:, 1);

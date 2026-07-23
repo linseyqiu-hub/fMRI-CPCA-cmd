@@ -21,7 +21,7 @@ config.filewildcard = 'fsn*img';
 % Mask parameters
 config.maskName = 'mask.img';  % Name of the mask file
 config.createMask = 1;  % 1 to create a new mask, 0 to use existing mask
-config.maskMethod = 2;  % 1-Global mean threshold; 2-Harvard Oxford MNI coordinates
+config.maskMethod = 1;  % 1-Global mean threshold; 2-Harvard Oxford MNI coordinates
 config.removeVentricles = 0; % 1 to exclude ventricles, 0 to include ventricles
 
 % Normalization parameters
