@@ -100,12 +100,16 @@ try
         mv_txt = fullfile(config.baseDIR, 'mask_verification.txt');
     
         if exist(mv_mat, 'file')
-            copyfile(mv_mat, fullfile(outputDIR, 'mask_verification.mat'));
-            delete(mv_mat);
+            [ok, msg] = movefile(mv_mat, fullfile(outputDIR, 'mask_verification.mat'));
+            if ~ok
+                fprintf(2, 'WARNING: failed to move mask_verification.mat: %s\n', msg);
+            end
         end
         if exist(mv_txt, 'file')
-            copyfile(mv_txt, fullfile(outputDIR, 'mask_verification.txt'));
-            delete(mv_txt);
+            [ok, msg] = movefile(mv_txt, fullfile(outputDIR, 'mask_verification.txt'));
+            if ~ok
+                fprintf(2, 'WARNING: failed to move mask_verification.txt: %s\n', msg);
+            end
         end
     end
     cd(config.cpcaDIR);
@@ -137,12 +141,16 @@ try
         mask_hdr = fullfile(config.baseDIR, 'mask_used.hdr');
     
         if exist(mask_img, 'file')
-            copyfile(mask_img, fullfile(outputDIR, 'mask_used.img'));
-            delete(mask_img);
+            [ok, msg] = movefile(mask_img, fullfile(outputDIR, 'mask_used.img'));
+            if ~ok
+                fprintf(2, 'WARNING: failed to move mask_used.img: %s\n', msg);
+            end
         end
         if exist(mask_hdr, 'file')
-            copyfile(mask_hdr, fullfile(outputDIR, 'mask_used.hdr'));
-            delete(mask_hdr);
+            [ok, msg] = movefile(mask_hdr, fullfile(outputDIR, 'mask_used.hdr'));
+            if ~ok
+               fprintf(2, 'WARNING: failed to move mask_used.hdr: %s\n', msg);
+            end
         end
     end
     fprintf('   Completed: Z matrix normalized.\n');

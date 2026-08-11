@@ -1,3 +1,25 @@
-# ignore test data folder directory
+# ── Test data ─────────────────────────────────────────────
 /TestData
+
+# ── OS artifacts ──────────────────────────────────────────
 **/.DS_Store
+Thumbs.db
+
+# ── MATLAB editor autosaves ───────────────────────────────
+*.asv
+*.m~
+*.autosave
+
+# ── Pipeline run state (per-run, never shared) ────────────
+pipeline_state.mat
+**/pipeline_state.mat
+
+# ── Run outputs and logs ──────────────────────────────────
+logs/
+**/logs/
+*.out
+*.err
+
+# ── Browser download duplicates ───────────────────────────
+*\ (1).*
+*\ (2).*
